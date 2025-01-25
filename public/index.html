@@ -1,0 +1,57 @@
+eeууeу<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Football Manager</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Football Manager</h1>
+        
+        <!-- Add Player Section -->
+        <section class="add-player-section">
+            <h2>Add Player</h2>
+            <form id="addPlayerForm">
+                <input type="text" id="playerName" placeholder="Player Name" required>
+                <button type="submit">Add</button>
+            </form>
+        </section>
+
+        <!-- Available Players Section -->
+        <section class="available-players-section">
+            <h2>Available Players</h2>
+            <div id="playersList" class="players-list">
+                <!-- Players will be added here dynamically -->
+            </div>
+        </section>
+
+        <!-- Teams Section -->
+        <section class="teams-section">
+            <h2>Teams</h2>
+            <div class="teams-container">
+                <div class="team" id="team1">
+                    <h3>Team 1</h3>
+                    <div class="team-players">
+                        <!-- Team 1 players will be added here -->
+                    </div>
+                </div>
+                <div class="team" id="team2">
+                    <h3>Team 2</h3>
+                    <div class="team-players">
+                        <!-- Team 2 players will be added here -->
+                    </div>
+                </div>
+                <div class="team" id="team3">
+                    <h3>Team 3</h3>
+                    <div class="team-players">
+                        <!-- Team 3 players will be added here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+    <script src="/js/main.js"></script>
+</body>
+</html> 

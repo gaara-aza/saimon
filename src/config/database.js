@@ -1,17 +1,12 @@
 const { Sequelize } = require('sequelize');
 
-const sequelize = new Sequelize({
-    database: 'postgres',
-    username: 'postgres',
-    password: 'admin',  // стандартный пароль
+const sequelize = new Sequelize('postgres', 'postgres', 'postgres', {
     host: 'localhost',
     port: 5432,
     dialect: 'postgres',
-    logging: false,
-    dialectOptions: {
-        ssl: false
-    }
+    logging: false
 });
+
 // Тестирование подключения
 sequelize
     .authenticate()

@@ -200,11 +200,33 @@ async function updateMatchResult(winningTeamId) {
         });
 
         if (response.ok) {
-            await loadPlayers(); // Перезагружаем данные игроков
-            renderStatistics(); // Обновляем статистику
+            // Перезагружаем все данные
+            await loadPlayers();
+            
+            // Получаем актуальные данные команд
+            const teamsResponse = await fetch('/api/teams');
+            const teamsData = await teamsResponse.json();
+            
+            // Обновляем состояние команд
+            teams.team1 = [];
+            teams.team2 = [];
+            teams.team3 = [];
+            
+            teamsData.forEach(team => {
+                teams[`team${team.id}`] = team.Players;
+            });
+
+            // Обновляем отображение
+            renderPlayers();
+            renderTeams();
+            renderStatistics();
+            
+            // Показываем сообщение об успехе
+            alert(`Team ${winningTeamId} won! Statistics updated.`);
         }
     } catch (error) {
         console.error('Error updating match result:', error);
+        alert('Error updating match result');
     }
 }
 

@@ -92,6 +92,7 @@ async function loadPlayers() {
         players = data;
         renderPlayers();
         renderTeams();
+        renderStatistics();
     } catch (error) {
         console.error('Error loading players:', error);
     }
@@ -155,5 +156,79 @@ function renderTeams() {
             `;
             teamPlayers.appendChild(playerDiv);
         });
+    });
+}
+
+// Добавляем обработчик для кнопки случайного распределения
+document.getElementById('randomizeTeams').addEventListener('click', async () => {
+    try {
+        const response = await fetch('/api/teams/random', {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            const teamsData = await response.json();
+            // Очищаем текущие команды
+            teams.team1 = [];
+            teams.team2 = [];
+            teams.team3 = [];
+            
+            // Обновляем локальное состояние команд
+            teamsData.forEach(team => {
+                teams[`team${team.id}`] = team.Players;
+            });
+            
+            await loadPlayers();
+            renderPlayers();
+            renderTeams();
+            renderStatistics();
+        }
+    } catch (error) {
+        console.error('Error randomizing teams:', error);
+    }
+});
+
+// Функция обновления результата матча
+async function updateMatchResult(winningTeamId) {
+    try {
+        const response = await fetch('/api/teams/match-result', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ winningTeamId })
+        });
+
+        if (response.ok) {
+            await loadPlayers(); // Перезагружаем данные игроков
+            renderStatistics(); // Обновляем статистику
+        }
+    } catch (error) {
+        console.error('Error updating match result:', error);
+    }
+}
+
+// Функция отображения статистики
+function renderStatistics() {
+    const statsContainer = document.getElementById('playerStats');
+    statsContainer.innerHTML = '';
+
+    players.forEach(player => {
+        const statsDiv = document.createElement('div');
+        statsDiv.className = 'player-stats';
+        statsDiv.innerHTML = `
+            <h4>${player.name}</h4>
+            <div class="stats-info">
+                <span>Games Played:</span>
+                <span>${player.gamesPlayed}</span>
+                <span>Games Won:</span>
+                <span>${player.gamesWon}</span>
+                <span>Points:</span>
+                <span>${player.points}</span>
+                <span>Win Rate:</span>
+                <span>${player.gamesPlayed ? Math.round(player.gamesWon / player.gamesPlayed * 100) : 0}%</span>
+            </div>
+        `;
+        statsContainer.appendChild(statsDiv);
     });
 } 

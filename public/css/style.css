@@ -152,4 +152,74 @@ button:hover {
 
 .remove-player:hover {
     background-color: #c0392b;
+}
+
+/* Team Controls */
+.team-controls {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.match-controls {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.match-controls h3 {
+    margin-bottom: 10px;
+}
+
+.match-controls p {
+    margin-bottom: 15px;
+    color: #666;
+}
+
+.match-controls button {
+    margin: 0 5px;
+}
+
+/* Statistics Section */
+.statistics-section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.player-stats {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+.player-stats h4 {
+    margin-bottom: 10px;
+    color: #2c3e50;
+}
+
+.stats-info {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 5px 10px;
+}
+
+.stats-info span:nth-child(odd) {
+    color: #666;
+}
+
+.stats-info span:nth-child(even) {
+    font-weight: bold;
+    text-align: right;
 } 

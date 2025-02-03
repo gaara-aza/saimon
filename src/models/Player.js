@@ -14,6 +14,19 @@ const Player = sequelize.define('Player', {
     isSelected: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
+    },
+    // Статистика игрока
+    gamesPlayed: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
+    },
+    gamesWon: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
+    },
+    points: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
     }
 });
 

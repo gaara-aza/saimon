@@ -1,9 +1,17 @@
 // Globalnoe hranilische igrokov i komand
 let players = [];
+let selectedPlayers = [];
 let teams = {
     team1: [],
     team2: [],
     team3: []
+};
+
+// Глобальное хранилище капитанов
+let teamCaptains = {
+    team1: null,
+    team2: null,
+    team3: null
 };
 
 // Testovye igroki
@@ -36,6 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (players.length === 0) {
         await addTestPlayers();
     }
+    renderAllPlayers();
 });
 
 // Dobavlenie testovyh igrokov
@@ -98,13 +107,103 @@ async function loadPlayers() {
     }
 }
 
-// Otobrazhenie spiska dostupnyh igrokov
+// Отображение всех игроков с чекбоксами
+function renderAllPlayers() {
+    const allPlayersList = document.getElementById('allPlayersList');
+    allPlayersList.innerHTML = '';
+
+    players.forEach(player => {
+        const playerDiv = document.createElement('div');
+        playerDiv.className = 'player-checkbox-item';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `player${player.id}`;
+        checkbox.value = player.id;
+        
+        const label = document.createElement('label');
+        label.htmlFor = `player${player.id}`;
+        label.textContent = `${player.name} (Games: ${player.gamesPlayed}, Wins: ${player.gamesWon})`;
+        
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'delete-player';
+        deleteButton.textContent = 'Delete';
+        deleteButton.addEventListener('click', () => handleDeletePlayer(player.id));
+        
+        playerDiv.appendChild(checkbox);
+        playerDiv.appendChild(label);
+        playerDiv.appendChild(deleteButton);
+        
+        allPlayersList.appendChild(playerDiv);
+    });
+}
+
+// Обработчик удаления игрока
+async function handleDeletePlayer(playerId) {
+    try {
+        const response = await fetch(`/api/players/${playerId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            // Удаляем игрока из локального массива
+            players = players.filter(p => p.id !== playerId);
+            // Удаляем из выбранных игроков
+            selectedPlayers = selectedPlayers.filter(p => p.id !== playerId);
+            // Удаляем из команд
+            Object.keys(teams).forEach(teamName => {
+                teams[teamName] = teams[teamName].filter(p => p.id !== playerId);
+            });
+            
+            // Обновляем отображение
+            renderAllPlayers();
+            renderPlayers();
+            renderTeams();
+            renderStatistics();
+        } else {
+            console.error('Error deleting player:', await response.text());
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+// Обработчик кнопки подтверждения выбора
+document.getElementById('confirmSelection').addEventListener('click', () => {
+    const checkboxes = document.querySelectorAll('#allPlayersList input[type="checkbox"]:checked');
+    selectedPlayers = Array.from(checkboxes).map(cb => {
+        return players.find(p => p.id === parseInt(cb.value));
+    });
+
+    if (selectedPlayers.length < 6) {
+        alert('Please select at least 6 players');
+        return;
+    }
+
+    // Показываем секции для распределения игроков
+    document.querySelector('.team-controls').style.display = 'block';
+    document.querySelector('.available-players-section').style.display = 'block';
+    document.querySelector('.teams-section').style.display = 'block';
+
+    // Скрываем секцию выбора
+    document.querySelector('.player-selection-section').style.display = 'none';
+
+    // Очищаем команды
+    teams.team1 = [];
+    teams.team2 = [];
+    teams.team3 = [];
+
+    renderPlayers();
+    renderTeams();
+});
+
+// Обновляем функцию отображения доступных игроков
 function renderPlayers() {
     const playersList = document.getElementById('playersList');
     playersList.innerHTML = '';
 
-    // Filtruem igrokov, kotorye esche ne v komandah
-    const availablePlayers = players.filter(player => 
+    // Фильтруем только выбранных игроков, которые еще не в командах
+    const availablePlayers = selectedPlayers.filter(player => 
         !Object.values(teams).flat().find(teamPlayer => teamPlayer.id === player.id)
     );
 
@@ -135,57 +234,110 @@ function addToTeam(playerId, teamName) {
 
 // Udalenie igroka iz komandy
 function removeFromTeam(playerId, teamName) {
+    // Если удаляемый игрок был капитаном, снимаем капитанство
+    if (teamCaptains[teamName] === playerId) {
+        teamCaptains[teamName] = null;
+    }
+    
     teams[teamName] = teams[teamName].filter(player => player.id !== playerId);
     renderPlayers();
     renderTeams();
 }
 
-// Otobrazhenie komand
+// Обновляем функцию отображения команд
 function renderTeams() {
     Object.keys(teams).forEach(teamName => {
         const teamDiv = document.getElementById(teamName);
         const teamPlayers = teamDiv.querySelector('.team-players');
-        teamPlayers.innerHTML = '';
+        const captainSelect = teamDiv.querySelector('.captain-select');
+        
+        // Обновляем список игроков в селекте капитана
+        captainSelect.innerHTML = '<option value="">Select Captain</option>';
+        teams[teamName].forEach(player => {
+            const option = document.createElement('option');
+            option.value = player.id;
+            option.textContent = player.name;
+            option.selected = teamCaptains[teamName] === player.id;
+            captainSelect.appendChild(option);
+        });
 
+        // Обновляем список игроков команды
+        teamPlayers.innerHTML = '';
         teams[teamName].forEach(player => {
             const playerDiv = document.createElement('div');
-            playerDiv.className = 'team-player';
-            playerDiv.innerHTML = `
-                <span>${player.name}</span>
+            playerDiv.className = `team-player ${teamCaptains[teamName] === player.id ? 'captain' : ''}`;
+            
+            const playerContent = `
+                <span>${player.name} ${teamCaptains[teamName] === player.id ? '<span class="captain-badge">C</span>' : ''}</span>
                 <button class="remove-player" onclick="removeFromTeam(${player.id}, '${teamName}')">X</button>
             `;
+            
+            playerDiv.innerHTML = playerContent;
             teamPlayers.appendChild(playerDiv);
         });
     });
 }
 
-// Добавляем обработчик для кнопки случайного распределения
-document.getElementById('randomizeTeams').addEventListener('click', async () => {
-    try {
-        const response = await fetch('/api/teams/random', {
-            method: 'POST'
-        });
-
-        if (response.ok) {
-            const teamsData = await response.json();
-            // Очищаем текущие команды
-            teams.team1 = [];
-            teams.team2 = [];
-            teams.team3 = [];
-            
-            // Обновляем локальное состояние команд
-            teamsData.forEach(team => {
-                teams[`team${team.id}`] = team.Players;
+// Добавляем обработчики для выбора капитана
+document.querySelectorAll('.captain-select').forEach(select => {
+    select.addEventListener('change', async (e) => {
+        const teamId = e.target.dataset.team;
+        const teamName = `team${teamId}`;
+        const playerId = parseInt(e.target.value);
+        
+        teamCaptains[teamName] = playerId || null;
+        
+        try {
+            // Отправляем информацию о капитане на сервер
+            const response = await fetch(`/api/teams/${teamId}/captain`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ captainId: playerId })
             });
-            
-            await loadPlayers();
-            renderPlayers();
+
+            if (response.ok) {
+                renderTeams();
+            } else {
+                console.error('Error updating team captain');
+                // Откатываем изменения при ошибке
+                teamCaptains[teamName] = null;
+                renderTeams();
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            // Откатываем изменения при ошибке
+            teamCaptains[teamName] = null;
             renderTeams();
-            renderStatistics();
         }
-    } catch (error) {
-        console.error('Error randomizing teams:', error);
+    });
+});
+
+// Обновляем обработчик случайного распределения
+document.getElementById('randomizeTeams').addEventListener('click', async () => {
+    if (selectedPlayers.length < 6) {
+        alert('Not enough players selected');
+        return;
     }
+
+    // Сбрасываем капитанов при новом распределении
+    teamCaptains = {
+        team1: null,
+        team2: null,
+        team3: null
+    };
+
+    // Остальной код распределения остается без изменений
+    const shuffledPlayers = [...selectedPlayers].sort(() => Math.random() - 0.5);
+    const playersPerTeam = Math.floor(shuffledPlayers.length / 3);
+
+    teams.team1 = shuffledPlayers.slice(0, playersPerTeam);
+    teams.team2 = shuffledPlayers.slice(playersPerTeam, playersPerTeam * 2);
+    teams.team3 = shuffledPlayers.slice(playersPerTeam * 2);
+
+    renderPlayers();
+    renderTeams();
 });
 
 // Функция обновления результата матча

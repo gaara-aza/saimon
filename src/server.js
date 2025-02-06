@@ -119,6 +119,27 @@ app.get('/api/teams', async (req, res) => {
     }
 });
 
+// Обновление капитана команды
+app.put('/api/teams/:teamId/captain', async (req, res) => {
+    try {
+        const { teamId } = req.params;
+        const { captainId } = req.body;
+
+        const team = await Team.findByPk(teamId);
+        if (!team) {
+            return res.status(404).json({ error: 'Team not found' });
+        }
+
+        // Если captainId null, то убираем капитана
+        team.captainId = captainId || null;
+        await team.save();
+
+        res.json({ message: 'Team captain updated successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Start server
 const PORT = process.env.PORT || 3000;
 

@@ -19,8 +19,19 @@
             </form>
         </section>
 
+        <!-- Player Selection Section -->
+        <section class="player-selection-section">
+            <h2>Select Players for Today's Game</h2>
+            <div id="allPlayersList" class="players-list">
+                <!-- All players will be listed here with checkboxes -->
+            </div>
+            <div class="selection-controls">
+                <button id="confirmSelection">Confirm Selected Players</button>
+            </div>
+        </section>
+
         <!-- Team Controls -->
-        <section class="team-controls">
+        <section class="team-controls" style="display: none;">
             <button id="randomizeTeams">Random Distribution</button>
             <div class="match-controls">
                 <h3>Match Result</h3>
@@ -32,31 +43,49 @@
         </section>
 
         <!-- Available Players Section -->
-        <section class="available-players-section">
-            <h2>Available Players</h2>
+        <section class="available-players-section" style="display: none;">
+            <h2>Selected Players</h2>
             <div id="playersList" class="players-list">
-                <!-- Players will be added here dynamically -->
+                <!-- Selected players will be added here dynamically -->
             </div>
         </section>
 
         <!-- Teams Section -->
-        <section class="teams-section">
+        <section class="teams-section" style="display: none;">
             <h2>Teams</h2>
             <div class="teams-container">
                 <div class="team" id="team1">
                     <h3>Team 1</h3>
+                    <div class="team-captain">
+                        <h4>Captain:</h4>
+                        <select class="captain-select" data-team="1">
+                            <option value="">Select Captain</option>
+                        </select>
+                    </div>
                     <div class="team-players">
                         <!-- Team 1 players will be added here -->
                     </div>
                 </div>
                 <div class="team" id="team2">
                     <h3>Team 2</h3>
+                    <div class="team-captain">
+                        <h4>Captain:</h4>
+                        <select class="captain-select" data-team="2">
+                            <option value="">Select Captain</option>
+                        </select>
+                    </div>
                     <div class="team-players">
                         <!-- Team 2 players will be added here -->
                     </div>
                 </div>
                 <div class="team" id="team3">
                     <h3>Team 3</h3>
+                    <div class="team-captain">
+                        <h4>Captain:</h4>
+                        <select class="captain-select" data-team="3">
+                            <option value="">Select Captain</option>
+                        </select>
+                    </div>
                     <div class="team-players">
                         <!-- Team 3 players will be added here -->
                     </div>

@@ -222,4 +222,108 @@ button:hover {
 .stats-info span:nth-child(even) {
     font-weight: bold;
     text-align: right;
+}
+
+/* Player Selection Section */
+.player-selection-section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.player-checkbox-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    justify-content: space-between;
+}
+
+.player-checkbox-item input[type="checkbox"] {
+    margin-right: 10px;
+    width: 18px;
+    height: 18px;
+}
+
+.player-checkbox-item label {
+    font-size: 16px;
+    cursor: pointer;
+    flex-grow: 1;
+}
+
+.delete-player {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.delete-player:hover {
+    background-color: #c0392b;
+}
+
+.selection-controls {
+    margin-top: 20px;
+    text-align: center;
+}
+
+#confirmSelection {
+    background-color: #27ae60;
+    padding: 12px 24px;
+    font-size: 16px;
+}
+
+#confirmSelection:hover {
+    background-color: #219a52;
+}
+
+.team-captain {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.team-captain h4 {
+    color: #2c3e50;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.captain-select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #333;
+    background-color: #fff;
+}
+
+.captain-select:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
+}
+
+.team-player.captain {
+    background-color: #f1c40f20;
+    border-left: 3px solid #f1c40f;
+}
+
+.captain-badge {
+    background-color: #f1c40f;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    margin-left: 8px;
 } 

@@ -143,12 +143,25 @@ app.put('/api/teams/:teamId/captain', async (req, res) => {
 // Start server
 const PORT = process.env.PORT || 3000;
 
-sequelize.sync({ force: true })
-    .then(() => {
+async function startServer() {
+    try {
+        // Проверяем подключение к базе данных
+        await sequelize.authenticate();
+        console.log('Database connection successful');
+
+        // Синхронизируем модели с базой данных
+        await sequelize.sync({ force: process.env.NODE_ENV !== 'production' });
+        console.log('Database synchronized');
+
+        // Запускаем сервер
         app.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
+            console.log(`Environment: ${process.env.NODE_ENV}`);
         });
-    })
-    .catch(err => {
-        console.error('Database sync error:', err);
-    }); 
+    } catch (error) {
+        console.error('Unable to start server:', error);
+        process.exit(1);
+    }
+}
+
+startServer(); 

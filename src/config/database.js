@@ -1,18 +1,12 @@
 const { Sequelize } = require('sequelize');
 
-const config = {
-    development: {
-        username: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASSWORD || 'postgres',
-        database: process.env.DB_NAME || 'postgres',
-        host: process.env.DB_HOST || 'localhost',
-        port: process.env.DB_PORT || 5432,
+let sequelize;
+
+if (process.env.NODE_ENV === 'production') {
+    // Конфигурация для production (Render.com)
+    sequelize = new Sequelize(process.env.DATABASE_URL, {
         dialect: 'postgres',
-        logging: false
-    },
-    production: {
-        use_env_variable: 'DATABASE_URL',
-        dialect: 'postgres',
+        protocol: 'postgres',
         dialectOptions: {
             ssl: {
                 require: true,
@@ -20,18 +14,19 @@ const config = {
             }
         },
         logging: false
-    }
-};
-
-const env = process.env.NODE_ENV || 'development';
-const sequelize = env === 'production' && process.env.DATABASE_URL
-    ? new Sequelize(process.env.DATABASE_URL, config[env])
-    : new Sequelize(
-        config[env].database,
-        config[env].username,
-        config[env].password,
-        config[env]
-    );
+    });
+} else {
+    // Конфигурация для локальной разработки
+    sequelize = new Sequelize({
+        database: process.env.DB_NAME || 'postgres',
+        username: process.env.DB_USER || 'postgres',
+        password: process.env.DB_PASSWORD || 'postgres',
+        host: process.env.DB_HOST || 'localhost',
+        port: process.env.DB_PORT || 5432,
+        dialect: 'postgres',
+        logging: false
+    });
+}
 
 // Тестирование подключения
 sequelize

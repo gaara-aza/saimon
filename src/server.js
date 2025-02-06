@@ -8,9 +8,22 @@ const path = require('path');
 
 const app = express();
 
+// Middleware для CORS и заголовков
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    next();
+});
+
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok' });
+});
 
 // Routes
 app.post('/api/players', async (req, res) => {
@@ -140,6 +153,12 @@ app.put('/api/teams/:teamId/captain', async (req, res) => {
     }
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Something broke!' });
+});
+
 // Start server
 const PORT = process.env.PORT || 3000;
 
@@ -150,14 +169,25 @@ async function startServer() {
         console.log('Database connection successful');
 
         // Синхронизируем модели с базой данных
-        await sequelize.sync({ force: process.env.NODE_ENV !== 'production' });
+        await sequelize.sync({ force: false }); // Изменили на false для production
         console.log('Database synchronized');
 
         // Запускаем сервер
-        app.listen(PORT, () => {
+        const server = app.listen(PORT, '0.0.0.0', () => {
             console.log(`Server is running on port ${PORT}`);
             console.log(`Environment: ${process.env.NODE_ENV}`);
         });
+
+        // Graceful shutdown
+        process.on('SIGTERM', () => {
+            console.log('SIGTERM signal received: closing HTTP server');
+            server.close(() => {
+                console.log('HTTP server closed');
+                sequelize.close();
+                process.exit(0);
+            });
+        });
+
     } catch (error) {
         console.error('Unable to start server:', error);
         process.exit(1);

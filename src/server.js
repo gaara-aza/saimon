@@ -8,6 +8,12 @@ const path = require('path');
 
 const app = express();
 
+// Логирование запросов
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+    next();
+});
+
 // Middleware для CORS и заголовков
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -22,7 +28,11 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok' });
+    res.json({ 
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        env: process.env.NODE_ENV
+    });
 });
 
 // Routes
@@ -155,8 +165,8 @@ app.put('/api/teams/:teamId/captain', async (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ error: 'Something broke!' });
+    console.error('Error:', err);
+    res.status(500).json({ error: err.message || 'Internal Server Error' });
 });
 
 // Start server
@@ -164,34 +174,29 @@ const PORT = process.env.PORT || 3000;
 
 async function startServer() {
     try {
+        console.log('Starting server...');
+        console.log('Environment:', process.env.NODE_ENV);
+        console.log('Database URL exists:', !!process.env.DATABASE_URL);
+
         // Проверяем подключение к базе данных
         await sequelize.authenticate();
         console.log('Database connection successful');
 
         // Синхронизируем модели с базой данных
-        await sequelize.sync({ force: false }); // Изменили на false для production
+        await sequelize.sync();
         console.log('Database synchronized');
 
         // Запускаем сервер
-        const server = app.listen(PORT, '0.0.0.0', () => {
+        app.listen(PORT, '0.0.0.0', () => {
             console.log(`Server is running on port ${PORT}`);
-            console.log(`Environment: ${process.env.NODE_ENV}`);
-        });
-
-        // Graceful shutdown
-        process.on('SIGTERM', () => {
-            console.log('SIGTERM signal received: closing HTTP server');
-            server.close(() => {
-                console.log('HTTP server closed');
-                sequelize.close();
-                process.exit(0);
-            });
         });
 
     } catch (error) {
-        console.error('Unable to start server:', error);
+        console.error('Server startup error:', error);
         process.exit(1);
     }
 }
 
+// Запускаем сервер
+console.log('Initializing server...');
 startServer(); 

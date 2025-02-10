@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
 const sequelize = require('./config/database');
 const Player = require('./models/Player');
 const Team = require('./models/Team');
@@ -170,12 +171,13 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
 async function startServer() {
     try {
         console.log('Starting server...');
         console.log('Environment:', process.env.NODE_ENV);
+        console.log('Port:', PORT);
         console.log('Database URL exists:', !!process.env.DATABASE_URL);
 
         // Проверяем подключение к базе данных
@@ -186,9 +188,40 @@ async function startServer() {
         await sequelize.sync();
         console.log('Database synchronized');
 
+        // Создаем HTTP сервер с увеличенными таймаутами
+        const server = http.createServer(app);
+        
+        // Устанавливаем таймауты
+        server.keepAliveTimeout = 120000; // 120 seconds
+        server.headersTimeout = 120000; // 120 seconds
+
         // Запускаем сервер
-        app.listen(PORT, '0.0.0.0', () => {
+        server.listen(PORT, '0.0.0.0', () => {
             console.log(`Server is running on port ${PORT}`);
+            console.log(`Server timeouts set to ${server.keepAliveTimeout}ms`);
+        });
+
+        // Обработка сигналов завершения
+        process.on('SIGTERM', () => {
+            console.log('SIGTERM received, shutting down gracefully');
+            server.close(() => {
+                console.log('Server closed');
+                sequelize.close().then(() => {
+                    console.log('Database connection closed');
+                    process.exit(0);
+                });
+            });
+        });
+
+        process.on('SIGINT', () => {
+            console.log('SIGINT received, shutting down gracefully');
+            server.close(() => {
+                console.log('Server closed');
+                sequelize.close().then(() => {
+                    console.log('Database connection closed');
+                    process.exit(0);
+                });
+            });
         });
 
     } catch (error) {

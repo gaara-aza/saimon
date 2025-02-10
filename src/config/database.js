@@ -2,9 +2,9 @@ const { Sequelize } = require('sequelize');
 
 let sequelize;
 
-if (process.env.DATABASE_URL) {
-    // Production конфигурация (Render.com)
-    sequelize = new Sequelize(process.env.DATABASE_URL, {
+// Проверяем наличие URL базы данных для Vercel
+if (process.env.POSTGRES_URL) {
+    sequelize = new Sequelize(process.env.POSTGRES_URL, {
         dialect: 'postgres',
         dialectOptions: {
             ssl: {
@@ -28,6 +28,7 @@ sequelize
     .authenticate()
     .then(() => {
         console.log('Database connection successful');
+        console.log('Database URL:', process.env.POSTGRES_URL ? 'Set' : 'Not set');
     })
     .catch(err => {
         console.error('Database connection error:', err);

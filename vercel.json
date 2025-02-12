@@ -13,21 +13,17 @@
     "routes": [
         {
             "src": "/api/(.*)",
-            "dest": "src/server.js"
+            "dest": "/src/server.js"
+        },
+        {
+            "handle": "filesystem"
         },
         {
             "src": "/(.*)",
-            "dest": "public/$1"
+            "dest": "/src/server.js"
         }
     ],
     "env": {
         "NODE_ENV": "production"
-    },
-    "regions": ["fra1"],
-    "functions": {
-        "src/server.js": {
-            "memory": 1024,
-            "maxDuration": 10
-        }
     }
 } 

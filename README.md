@@ -46,3 +46,26 @@ npm start
 ```
 http://localhost:3000
 ```
+
+## Деплой на Vercel
+
+1. Создайте аккаунт на [Vercel](https://vercel.com)
+
+2. Установите Vercel CLI:
+```bash
+npm i -g vercel
+```
+
+3. Войдите в аккаунт:
+```bash
+vercel login
+```
+
+4. Настройте переменные окружения в Vercel Dashboard:
+- `NEON_DATABASE_URL` - URL вашей базы данных
+- `NODE_ENV=production`
+
+5. Выполните деплой:
+```bash
+vercel --prod
+```

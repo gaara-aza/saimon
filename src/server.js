@@ -11,9 +11,8 @@ const app = express();
 // Middleware
 app.use(express.json());
 
-// Статические файлы - добавляем несколько путей
+// Статические файлы
 app.use(express.static(path.join(__dirname, '../public')));
-app.use(express.static('public'));
 
 // Логирование запросов
 app.use((req, res, next) => {
@@ -38,21 +37,9 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Главная страница - добавляем несколько вариантов
+// Главная страница 
 app.get('/', (req, res) => {
-    const indexPaths = [
-        path.join(__dirname, '../public/index.html'),
-        path.join(__dirname, 'public/index.html'),
-        path.join(process.cwd(), 'public/index.html')
-    ];
-
-    for (const indexPath of indexPaths) {
-        if (require('fs').existsSync(indexPath)) {
-            return res.sendFile(indexPath);
-        }
-    }
-
-    res.status(404).send('Index file not found');
+    res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
 // Routes
@@ -190,7 +177,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 async function startServer() {
     try {
@@ -213,13 +200,12 @@ async function startServer() {
 
     } catch (error) {
         console.error('Server startup error:', error);
-        process.exit(1);
+        // Не завершаем процесс в production
+        if (process.env.NODE_ENV !== 'production') {
+            process.exit(1);
+        }
     }
 }
 
-// Для Vercel
-if (process.env.NODE_ENV === 'production') {
-    module.exports = app;
-} else {
-    startServer();
-} 
+// Запускаем сервер
+startServer(); 

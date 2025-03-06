@@ -29,7 +29,7 @@ npm install
 ```
 
 3. Создайте файл .env и настройте подключение к базе данных
-```
+```e
 DB_HOST=localhost
 DB_USER=postgres
 DB_PASSWORD=admin

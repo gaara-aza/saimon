@@ -2,9 +2,9 @@ const { Sequelize } = require('sequelize');
 
 let sequelize;
 
-// Проверяем наличие URL базы данных Neon
-if (process.env.NEON_DATABASE_URL) {
-    sequelize = new Sequelize(process.env.NEON_DATABASE_URL, {
+// Проверяем наличие URL базы данных для Fly.io
+if (process.env.DATABASE_URL) {
+    sequelize = new Sequelize(process.env.DATABASE_URL, {
         dialect: 'postgres',
         dialectOptions: {
             ssl: {
@@ -13,7 +13,7 @@ if (process.env.NEON_DATABASE_URL) {
             }
         },
         pool: {
-            max: 10,
+            max: 5,
             min: 0,
             acquire: 30000,
             idle: 10000
@@ -40,7 +40,6 @@ sequelize
     .authenticate()
     .then(() => {
         console.log('Database connection successful');
-        console.log('Using Neon:', process.env.NEON_DATABASE_URL ? 'Yes' : 'No');
     })
     .catch(err => {
         console.error('Database connection error:', err);

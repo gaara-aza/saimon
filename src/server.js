@@ -218,12 +218,16 @@ async function startServer() {
 
     } catch (error) {
         console.error('Server startup error:', error);
-        process.exit(1);
+        // Не завершаем процесс в production
+        if (process.env.NODE_ENV !== 'production') {
+            process.exit(1);
+        }
     }
 }
 
+// Запускаем сервер в зависимости от окружения
 if (process.env.NODE_ENV === 'production') {
     module.exports = app;
 } else {
     startServer();
-} 
+}

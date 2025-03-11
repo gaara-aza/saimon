@@ -14,7 +14,7 @@ if (process.env.DATABASE_URL || process.env.NEON_DATABASE_URL) {
             }
         },
         pool: {
-            max: 10,
+            max: 5,
             min: 0,
             acquire: 30000,
             idle: 10000
@@ -22,7 +22,7 @@ if (process.env.DATABASE_URL || process.env.NEON_DATABASE_URL) {
         logging: false
     });
 } else {
-    // ��������� ����������
+    // Локальное подключение
     sequelize = new Sequelize('postgres', 'postgres', 'postgres', {
         host: 'localhost',
         dialect: 'postgres',
@@ -36,12 +36,12 @@ if (process.env.DATABASE_URL || process.env.NEON_DATABASE_URL) {
     });
 }
 
-// ������������ �����������
+// Проверяем подключение
 sequelize
     .authenticate()
     .then(() => {
         console.log('Database connection successful');
-        console.log('Using Database URL:', process.env.DATABASE_URL ? 'Railway' : (process.env.NEON_DATABASE_URL ? 'Neon' : 'Local'));
+        console.log('Using Database URL:', process.env.DATABASE_URL ? 'Railway/Fly.io' : (process.env.NEON_DATABASE_URL ? 'Neon' : 'Local'));
     })
     .catch(err => {
         console.error('Database connection error:', err);

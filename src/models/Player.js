@@ -15,7 +15,7 @@ const Player = sequelize.define('Player', {
         type: DataTypes.BOOLEAN,
         defaultValue: false
     },
-    // Статистика игрока
+    // Statistics fields
     gamesPlayed: {
         type: DataTypes.INTEGER,
         defaultValue: 0

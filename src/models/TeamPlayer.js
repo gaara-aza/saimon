@@ -20,7 +20,7 @@ const TeamPlayer = sequelize.define('TeamPlayer', {
     }
 });
 
-// Устанавливаем связи
+// Define relationships
 Team.belongsToMany(Player, { through: TeamPlayer });
 Player.belongsToMany(Team, { through: TeamPlayer });
 Team.belongsTo(Player, { as: 'captain', foreignKey: 'captainId' });

@@ -2,9 +2,10 @@ const { Sequelize } = require('sequelize');
 
 let sequelize;
 
-// Проверяем наличие URL базы данных Neon
-if (process.env.NEON_DATABASE_URL) {
-    sequelize = new Sequelize(process.env.NEON_DATABASE_URL, {
+// п÷я─п╬п╡п╣я─я▐п╣п╪ п╫п╟п╩п╦я┤п╦п╣ URL п╠п╟п╥я▀ п╢п╟п╫п╫я▀я┘
+if (process.env.DATABASE_URL || process.env.NEON_DATABASE_URL) {
+    const databaseUrl = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL;
+    sequelize = new Sequelize(databaseUrl, {
         dialect: 'postgres',
         dialectOptions: {
             ssl: {
@@ -21,7 +22,7 @@ if (process.env.NEON_DATABASE_URL) {
         logging: false
     });
 } else {
-    // Локальная разработка
+    // О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫
     sequelize = new Sequelize('postgres', 'postgres', 'postgres', {
         host: 'localhost',
         dialect: 'postgres',
@@ -35,12 +36,12 @@ if (process.env.NEON_DATABASE_URL) {
     });
 }
 
-// Тестирование подключения
+// О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫
 sequelize
     .authenticate()
     .then(() => {
         console.log('Database connection successful');
-        console.log('Using Neon:', process.env.NEON_DATABASE_URL ? 'Yes' : 'No');
+        console.log('Using Database URL:', process.env.DATABASE_URL ? 'Railway' : (process.env.NEON_DATABASE_URL ? 'Neon' : 'Local'));
     })
     .catch(err => {
         console.error('Database connection error:', err);

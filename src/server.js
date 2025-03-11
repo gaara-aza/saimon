@@ -11,11 +11,10 @@ const app = express();
 // Middleware
 app.use(express.json());
 
-// Статические файлы - добавляем несколько путей
+// п²п╟я│я┌я─п╬п╧п╨п╟ я│я┌п╟я┌п╦я┤п╣я│п╨п╦я┘ я└п╟п╧п╩п╬п╡
 app.use(express.static(path.join(__dirname, '../public')));
-app.use(express.static('public'));
 
-// Логирование запросов
+// п⌡п╬пЁп╦я─п╬п╡п╟п╫п╦п╣ п╥п╟п©я─п╬я│п╬п╡
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
     next();
@@ -24,8 +23,12 @@ app.use((req, res, next) => {
 // CORS middleware
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    res.header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
     next();
 });
 
@@ -38,33 +41,7 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Главная страница - добавляем несколько вариантов
-app.get('/', (req, res) => {
-    const indexPaths = [
-        path.join(__dirname, '../public/index.html'),
-        path.join(__dirname, 'public/index.html'),
-        path.join(process.cwd(), 'public/index.html')
-    ];
-
-    for (const indexPath of indexPaths) {
-        if (require('fs').existsSync(indexPath)) {
-            return res.sendFile(indexPath);
-        }
-    }
-
-    res.status(404).send('Index file not found');
-});
-
-// Routes
-app.post('/api/players', async (req, res) => {
-    try {
-        const player = await Player.create(req.body);
-        res.json(player);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
-});
-
+// API п╪п╟я─я┬я─я┐я┌я▀ - п╡я│п╣ API п╪п╟я─я┬я─я┐я┌я▀ п╢п╬п╩п╤п╫я▀ п╠я▀я┌я▄ п╬п©я─п╣п╢п╣п╩п╣п╫я▀ п■п· п╪п╟я─я┬я─я┐я┌п╟ п╢п╩я▐ пЁп╩п╟п╡п╫п╬п╧ я│я┌я─п╟п╫п╦я├я▀
 app.get('/api/players', async (req, res) => {
     try {
         const players = await Player.findAll();
@@ -74,17 +51,49 @@ app.get('/api/players', async (req, res) => {
     }
 });
 
-// Случайное распределение игроков по командам
+app.post('/api/players', async (req, res) => {
+    try {
+        const player = await Player.create(req.body);
+        res.json(player);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+app.delete('/api/players/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        console.log(`п÷п╬п╩я┐я┤п╣п╫ п╥п╟п©я─п╬я│ п╫п╟ я┐п╢п╟п╩п╣п╫п╦п╣ п╦пЁя─п╬п╨п╟ я│ ID: ${id}`);
+        
+        const player = await Player.findByPk(id);
+        
+        if (!player) {
+            console.log(`п≤пЁя─п╬п╨ я│ ID ${id} п╫п╣ п╫п╟п╧п╢п╣п╫`);
+            return res.status(404).json({ error: 'п≤пЁя─п╬п╨ п╫п╣ п╫п╟п╧п╢п╣п╫' });
+        }
+
+        // п║п╫п╟я┤п╟п╩п╟ я┐п╢п╟п╩я▐п╣п╪ я│п╡я▐п╥п╦ я│ п╨п╬п╪п╟п╫п╢п╟п╪п╦
+        await TeamPlayer.destroy({ where: { playerId: id } });
+        
+        // п≈п╟я┌п╣п╪ я┐п╢п╟п╩я▐п╣п╪ я│п╟п╪п╬пЁп╬ п╦пЁя─п╬п╨п╟
+        await player.destroy();
+        
+        console.log(`п≤пЁя─п╬п╨ я│ ID ${id} я┐я│п©п╣я┬п╫п╬ я┐п╢п╟п╩п╣п╫`);
+        res.json({ message: 'п≤пЁя─п╬п╨ я┐я│п©п╣я┬п╫п╬ я┐п╢п╟п╩п╣п╫' });
+    } catch (error) {
+        console.error(`п·я┬п╦п╠п╨п╟ п©я─п╦ я┐п╢п╟п╩п╣п╫п╦п╦ п╦пЁя─п╬п╨п╟: ${error.message}`);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.post('/api/teams/random', async (req, res) => {
     try {
         const players = await Player.findAll();
         const shuffledPlayers = players.sort(() => Math.random() - 0.5);
         const playersPerTeam = Math.floor(players.length / 3);
 
-        // Очищаем текущие команды
         await TeamPlayer.destroy({ where: {} });
 
-        // Создаем три команды
         for (let i = 0; i < 3; i++) {
             const team = await Team.findOrCreate({
                 where: { id: i + 1 },
@@ -109,12 +118,10 @@ app.post('/api/teams/random', async (req, res) => {
     }
 });
 
-// Обновление статистики после матча
 app.post('/api/teams/match-result', async (req, res) => {
     try {
         const { winningTeamId } = req.body;
         
-        // Получаем команду-победителя и её игроков
         const winningTeam = await Team.findByPk(winningTeamId, {
             include: [{ model: Player, through: TeamPlayer }]
         });
@@ -123,14 +130,12 @@ app.post('/api/teams/match-result', async (req, res) => {
             return res.status(404).json({ error: 'Team not found' });
         }
 
-        // Обновляем статистику игроков
         for (const player of winningTeam.Players) {
             await player.increment('gamesPlayed');
             await player.increment('gamesWon');
-            await player.increment('points', { by: 3 }); // 3 очка за победу
+            await player.increment('points', { by: 3 });
         }
 
-        // Обновляем статистику проигравших команд
         const losingTeams = await Team.findAll({
             where: { id: { [sequelize.Op.ne]: winningTeamId } },
             include: [{ model: Player, through: TeamPlayer }]
@@ -162,7 +167,6 @@ app.get('/api/teams', async (req, res) => {
     }
 });
 
-// Обновление капитана команды
 app.put('/api/teams/:teamId/captain', async (req, res) => {
     try {
         const { teamId } = req.params;
@@ -173,7 +177,6 @@ app.put('/api/teams/:teamId/captain', async (req, res) => {
             return res.status(404).json({ error: 'Team not found' });
         }
 
-        // Если captainId null, то убираем капитана
         team.captainId = captainId || null;
         await team.save();
 
@@ -183,6 +186,11 @@ app.put('/api/teams/:teamId/captain', async (req, res) => {
     }
 });
 
+// п°п╟я─я┬я─я┐я┌ п╢п╩я▐ пЁп╩п╟п╡п╫п╬п╧ я│я┌я─п╟п╫п╦я├я▀ п╢п╬п╩п╤п╣п╫ п╠я▀я┌я▄ п÷п·п║п⌡п∙п■п²п≤п°
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error:', err);
@@ -190,7 +198,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 async function startServer() {
     try {
@@ -198,15 +206,12 @@ async function startServer() {
         console.log('Environment:', process.env.NODE_ENV);
         console.log('Port:', PORT);
 
-        // Проверяем подключение к базе данных
         await sequelize.authenticate();
         console.log('Database connection successful');
 
-        // Синхронизируем модели с базой данных
         await sequelize.sync();
         console.log('Database synchronized');
 
-        // Запускаем сервер
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`Server is running on port ${PORT}`);
         });
@@ -217,7 +222,6 @@ async function startServer() {
     }
 }
 
-// Для Vercel
 if (process.env.NODE_ENV === 'production') {
     module.exports = app;
 } else {

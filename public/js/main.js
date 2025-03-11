@@ -7,107 +7,80 @@ let teams = {
     team3: []
 };
 
-// Глобальное хранилище капитанов
+// О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫
 let teamCaptains = {
     team1: null,
     team2: null,
     team3: null
 };
 
-// Testovye igroki
-const testPlayers = [
-    "Alexander Petrov",
-    "Dmitry Ivanov",
-    "Maxim Sidorov",
-    "Artem Kozlov",
-    "Sergey Volkov",
-    "Andrey Morozov",
-    "Igor Sokolov",
-    "Nikolay Popov",
-    "Vladimir Lebedev",
-    "Mikhail Komarov",
-    "Pavel Novikov",
-    "Evgeny Soloviev",
-    "Roman Vasiliev",
-    "Viktor Zaytsev",
-    "Denis Orlov",
-    "Konstantin Belov",
-    "Grigory Medvedev",
-    "Anton Ershov"
-];
+// п▒п╟п╥п╬п╡я▀п╧ URL п╢п╩я▐ API
+const API_BASE_URL = 'http://localhost:3001';
 
-// Zagruzka igrokov pri zagruzke stranicy
+// п≈п╟пЁя─я┐п╥п╨п╟ п╦пЁя─п╬п╨п╬п╡ п©я─п╦ п╥п╟пЁя─я┐п╥п╨п╣ я│я┌я─п╟п╫п╦я├я▀
 document.addEventListener('DOMContentLoaded', async () => {
     await loadPlayers();
-    
-    // Esli igrokov net, dobavlyaem testovyh
-    if (players.length === 0) {
-        await addTestPlayers();
-    }
     renderAllPlayers();
 });
 
-// Dobavlenie testovyh igrokov
-async function addTestPlayers() {
-    for (const name of testPlayers) {
-        try {
-            await fetch('/api/players', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ name })
-            });
-        } catch (error) {
-            console.error('Error adding test player:', error);
-        }
-    }
-    await loadPlayers();
-}
-
-// Obrabotka formy dobavleniya igroka
-document.getElementById('addPlayerForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const nameInput = document.getElementById('playerName');
-    const name = nameInput.value.trim();
-
-    if (name) {
-        try {
-            const response = await fetch('/api/players', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ name })
-            });
-
-            if (response.ok) {
-                nameInput.value = '';
-                loadPlayers();
-            } else {
-                console.error('Error adding player');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-        }
-    }
-});
-
-// Zagruzka spiska igrokov
+// п╓я┐п╫п╨я├п╦я▐ п╥п╟пЁя─я┐п╥п╨п╦ я│п©п╦я│п╨п╟ п╦пЁя─п╬п╨п╬п╡
 async function loadPlayers() {
     try {
-        const response = await fetch('/api/players');
+        const response = await fetch(`${API_BASE_URL}/api/players`);
+        if (!response.ok) {
+            throw new Error('п·я┬п╦п╠п╨п╟ п©я─п╦ п╥п╟пЁя─я┐п╥п╨п╣ п╦пЁя─п╬п╨п╬п╡');
+        }
         const data = await response.json();
         players = data;
         renderPlayers();
         renderTeams();
         renderStatistics();
     } catch (error) {
-        console.error('Error loading players:', error);
+        console.error('п·я┬п╦п╠п╨п╟ п╥п╟пЁя─я┐п╥п╨п╦ п╦пЁя─п╬п╨п╬п╡:', error);
+        alert('п·я┬п╦п╠п╨п╟ п©я─п╦ п╥п╟пЁя─я┐п╥п╨п╣ я│п©п╦я│п╨п╟ п╦пЁя─п╬п╨п╬п╡');
     }
 }
 
-// Отображение всех игроков с чекбоксами
+// п·п╠я─п╟п╠п╬я┌п╨п╟ я└п╬я─п╪я▀ п╢п╬п╠п╟п╡п╩п╣п╫п╦я▐ п╦пЁя─п╬п╨п╟
+document.getElementById('addPlayerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nameInput = document.getElementById('playerName');
+    const name = nameInput.value.trim();
+
+    if (!name) {
+        alert('п÷п╬п╤п╟п╩я┐п╧я│я┌п╟, п╡п╡п╣п╢п╦я┌п╣ п╦п╪я▐ п╦пЁя─п╬п╨п╟');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/players`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'п·я┬п╦п╠п╨п╟ п©я─п╦ п╢п╬п╠п╟п╡п╩п╣п╫п╦п╦ п╦пЁя─п╬п╨п╟');
+        }
+
+        // п·я┤п╦я┴п╟п╣п╪ п©п╬п╩п╣ п╡п╡п╬п╢п╟
+        nameInput.value = '';
+        
+        // п·п╠п╫п╬п╡п╩я▐п╣п╪ я│п©п╦я│п╬п╨ п╦пЁя─п╬п╨п╬п╡
+        await loadPlayers();
+        
+        // п·п╠п╫п╬п╡п╩я▐п╣п╪ п╬я┌п╬п╠я─п╟п╤п╣п╫п╦п╣
+        renderAllPlayers();
+    } catch (error) {
+        console.error('п·я┬п╦п╠п╨п╟:', error);
+        alert(error.message || 'п·я┬п╦п╠п╨п╟ п©я─п╦ п╢п╬п╠п╟п╡п╩п╣п╫п╦п╦ п╦пЁя─п╬п╨п╟');
+    }
+});
+
+//    
 function renderAllPlayers() {
     const allPlayersList = document.getElementById('allPlayersList');
     allPlayersList.innerHTML = '';
@@ -138,37 +111,54 @@ function renderAllPlayers() {
     });
 }
 
-// Обработчик удаления игрока
+// п╓я┐п╫п╨я├п╦я▐ я┐п╢п╟п╩п╣п╫п╦я▐ п╦пЁя─п╬п╨п╟
 async function handleDeletePlayer(playerId) {
+    console.log('пёп╢п╟п╩п╣п╫п╦п╣ п╦пЁя─п╬п╨п╟ я│ ID:', playerId);
+    
     try {
-        const response = await fetch(`/api/players/${playerId}`, {
-            method: 'DELETE'
+        // п÷я─я▐п╪п╬п╧ п╥п╟п©я─п╬я│ п╫п╟ я┐п╢п╟п╩п╣п╫п╦п╣
+        const url = `${API_BASE_URL}/api/players/${playerId}`;
+        console.log('п·я┌п©я─п╟п╡п╨п╟ DELETE п╥п╟п©я─п╬я│п╟ п╫п╟:', url);
+        
+        const response = await fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
-
+        
+        console.log('п·я┌п╡п╣я┌ я│п╣я─п╡п╣я─п╟:', response.status);
+        
         if (response.ok) {
-            // Удаляем игрока из локального массива
+            console.log('п≤пЁя─п╬п╨ я┐я│п©п╣я┬п╫п╬ я┐п╢п╟п╩п╣п╫');
+            
+            // пёп╢п╟п╩я▐п╣п╪ п╦пЁя─п╬п╨п╟ п╦п╥ п╩п╬п╨п╟п╩я▄п╫п╬пЁп╬ п╪п╟я│я│п╦п╡п╟
             players = players.filter(p => p.id !== playerId);
-            // Удаляем из выбранных игроков
+            
+            // п·п╠п╫п╬п╡п╩я▐п╣п╪ п╬я┌п╬п╠я─п╟п╤п╣п╫п╦п╣
+            renderAllPlayers();
+            
+            // п╒п╟п╨п╤п╣ п╬п╠п╫п╬п╡п╩я▐п╣п╪ п╢я─я┐пЁп╦п╣ я│п©п╦я│п╨п╦
             selectedPlayers = selectedPlayers.filter(p => p.id !== playerId);
-            // Удаляем из команд
             Object.keys(teams).forEach(teamName => {
                 teams[teamName] = teams[teamName].filter(p => p.id !== playerId);
             });
             
-            // Обновляем отображение
-            renderAllPlayers();
             renderPlayers();
             renderTeams();
             renderStatistics();
         } else {
-            console.error('Error deleting player:', await response.text());
+            console.error('п·я┬п╦п╠п╨п╟ п©я─п╦ я┐п╢п╟п╩п╣п╫п╦п╦ п╦пЁя─п╬п╨п╟:', response.status);
+            // п÷п╬п©я─п╬п╠я┐п╣п╪ п©п╬п╩я┐я┤п╦я┌я▄ я┌п╣п╨я│я┌ п╬я┬п╦п╠п╨п╦
+            const errorText = await response.text();
+            console.error('п╒п╣п╨я│я┌ п╬я┬п╦п╠п╨п╦:', errorText);
         }
     } catch (error) {
-        console.error('Error:', error);
+        console.error('п≤я│п╨п╩я▌я┤п╣п╫п╦п╣ п©я─п╦ я┐п╢п╟п╩п╣п╫п╦п╦ п╦пЁя─п╬п╨п╟:', error);
     }
 }
 
-// Обработчик кнопки подтверждения выбора
+//    
 document.getElementById('confirmSelection').addEventListener('click', () => {
     const checkboxes = document.querySelectorAll('#allPlayersList input[type="checkbox"]:checked');
     selectedPlayers = Array.from(checkboxes).map(cb => {
@@ -180,15 +170,15 @@ document.getElementById('confirmSelection').addEventListener('click', () => {
         return;
     }
 
-    // Показываем секции для распределения игроков
+    //     
     document.querySelector('.team-controls').style.display = 'block';
     document.querySelector('.available-players-section').style.display = 'block';
     document.querySelector('.teams-section').style.display = 'block';
 
-    // Скрываем секцию выбора
+    //   
     document.querySelector('.player-selection-section').style.display = 'none';
 
-    // Очищаем команды
+    //  
     teams.team1 = [];
     teams.team2 = [];
     teams.team3 = [];
@@ -197,12 +187,12 @@ document.getElementById('confirmSelection').addEventListener('click', () => {
     renderTeams();
 });
 
-// Обновляем функцию отображения доступных игроков
+//     
 function renderPlayers() {
     const playersList = document.getElementById('playersList');
     playersList.innerHTML = '';
 
-    // Фильтруем только выбранных игроков, которые еще не в командах
+    //    ,    
     const availablePlayers = selectedPlayers.filter(player => 
         !Object.values(teams).flat().find(teamPlayer => teamPlayer.id === player.id)
     );
@@ -234,7 +224,7 @@ function addToTeam(playerId, teamName) {
 
 // Udalenie igroka iz komandy
 function removeFromTeam(playerId, teamName) {
-    // Если удаляемый игрок был капитаном, снимаем капитанство
+    //     ,  
     if (teamCaptains[teamName] === playerId) {
         teamCaptains[teamName] = null;
     }
@@ -244,14 +234,14 @@ function removeFromTeam(playerId, teamName) {
     renderTeams();
 }
 
-// Обновляем функцию отображения команд
+//    
 function renderTeams() {
     Object.keys(teams).forEach(teamName => {
         const teamDiv = document.getElementById(teamName);
         const teamPlayers = teamDiv.querySelector('.team-players');
         const captainSelect = teamDiv.querySelector('.captain-select');
         
-        // Обновляем список игроков в селекте капитана
+        //     
         captainSelect.innerHTML = '<option value="">Select Captain</option>';
         teams[teamName].forEach(player => {
             const option = document.createElement('option');
@@ -261,7 +251,7 @@ function renderTeams() {
             captainSelect.appendChild(option);
         });
 
-        // Обновляем список игроков команды
+        //    
         teamPlayers.innerHTML = '';
         teams[teamName].forEach(player => {
             const playerDiv = document.createElement('div');
@@ -278,7 +268,7 @@ function renderTeams() {
     });
 }
 
-// Добавляем обработчики для выбора капитана
+// О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫
 document.querySelectorAll('.captain-select').forEach(select => {
     select.addEventListener('change', async (e) => {
         const teamId = e.target.dataset.team;
@@ -288,8 +278,8 @@ document.querySelectorAll('.captain-select').forEach(select => {
         teamCaptains[teamName] = playerId || null;
         
         try {
-            // Отправляем информацию о капитане на сервер
-            const response = await fetch(`/api/teams/${teamId}/captain`, {
+            // О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫
+            const response = await fetch(`${API_BASE_URL}/api/teams/${teamId}/captain`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -301,34 +291,34 @@ document.querySelectorAll('.captain-select').forEach(select => {
                 renderTeams();
             } else {
                 console.error('Error updating team captain');
-                // Откатываем изменения при ошибке
+                // О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫
                 teamCaptains[teamName] = null;
                 renderTeams();
             }
         } catch (error) {
             console.error('Error:', error);
-            // Откатываем изменения при ошибке
+            // О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫
             teamCaptains[teamName] = null;
             renderTeams();
         }
     });
 });
 
-// Обновляем обработчик случайного распределения
+// О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫
 document.getElementById('randomizeTeams').addEventListener('click', async () => {
     if (selectedPlayers.length < 6) {
         alert('Not enough players selected');
         return;
     }
 
-    // Сбрасываем капитанов при новом распределении
+    // О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫
     teamCaptains = {
         team1: null,
         team2: null,
         team3: null
     };
 
-    // Остальной код распределения остается без изменений
+    // О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫
     const shuffledPlayers = [...selectedPlayers].sort(() => Math.random() - 0.5);
     const playersPerTeam = Math.floor(shuffledPlayers.length / 3);
 
@@ -340,49 +330,7 @@ document.getElementById('randomizeTeams').addEventListener('click', async () => 
     renderTeams();
 });
 
-// Функция обновления результата матча
-async function updateMatchResult(winningTeamId) {
-    try {
-        const response = await fetch('/api/teams/match-result', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ winningTeamId })
-        });
-
-        if (response.ok) {
-            // Перезагружаем все данные
-            await loadPlayers();
-            
-            // Получаем актуальные данные команд
-            const teamsResponse = await fetch('/api/teams');
-            const teamsData = await teamsResponse.json();
-            
-            // Обновляем состояние команд
-            teams.team1 = [];
-            teams.team2 = [];
-            teams.team3 = [];
-            
-            teamsData.forEach(team => {
-                teams[`team${team.id}`] = team.Players;
-            });
-
-            // Обновляем отображение
-            renderPlayers();
-            renderTeams();
-            renderStatistics();
-            
-            // Показываем сообщение об успехе
-            alert(`Team ${winningTeamId} won! Statistics updated.`);
-        }
-    } catch (error) {
-        console.error('Error updating match result:', error);
-        alert('Error updating match result');
-    }
-}
-
-// Функция отображения статистики
+// О©╫О©╫О©╫О©╫О©╫О©╫О©╫ О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ 
 function renderStatistics() {
     const statsContainer = document.getElementById('playerStats');
     statsContainer.innerHTML = '';

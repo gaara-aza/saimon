@@ -225,13 +225,22 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3001;
+function validatePort(port) {
+    const parsedPort = parseInt(port, 10);
+    if (isNaN(parsedPort) || parsedPort < 0 || parsedPort > 65535) {
+        throw new Error(`Invalid PORT: ${port}. Port must be an integer between 0 and 65535`);
+    }
+    return parsedPort;
+}
+
+const PORT = validatePort(process.env.PORT || '3001');
 
 async function startServer() {
     try {
         console.log('=== Server Starting ===');
         console.log('Environment:', process.env.NODE_ENV);
-        console.log('Port:', PORT);
+        console.log('Raw PORT value:', process.env.PORT);
+        console.log('Validated PORT:', PORT);
         console.log('Database URL exists:', !!process.env.DATABASE_URL);
         console.log('Current working directory:', process.cwd());
         console.log('Node version:', process.version);

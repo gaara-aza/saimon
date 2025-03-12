@@ -95,12 +95,17 @@ button:hover {
 
 .team-buttons {
     display: flex;
-    gap: 5px;
+    gap: 2px;
+    margin-left: 5px;
 }
 
-.team-button {
-    padding: 5px 10px;
-    font-size: 14px;
+.team-buttons button {
+    padding: 2px 4px;
+    font-size: 11px;
+    min-width: 45px;
+    height: 20px;
+    margin: 0;
+    line-height: 1;
 }
 
 /* Секция команд */
@@ -236,11 +241,11 @@ button:hover {
 .player-checkbox-item {
     display: flex;
     align-items: center;
-    padding: 10px;
+    padding: 6px 10px;
     background: #f8f9fa;
     border-radius: 6px;
-    margin-bottom: 8px;
-    justify-content: space-between;
+    margin-bottom: 6px;
+    gap: 8px;
 }
 
 .player-checkbox-item input[type="checkbox"] {
@@ -256,13 +261,12 @@ button:hover {
 }
 
 .delete-player {
+    padding: 2px 4px;
+    font-size: 11px;
     background-color: #e74c3c;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-left: 10px;
+    height: 20px;
+    min-width: 45px;
+    line-height: 1;
 }
 
 .delete-player:hover {
@@ -326,4 +330,42 @@ button:hover {
     border-radius: 3px;
     font-size: 12px;
     margin-left: 8px;
+}
+
+.selected-players-container {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.selected-players-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.selected-players-list .player-checkbox-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    justify-content: space-between;
+}
+
+.selected-players-list .player-checkbox-item span {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.selected-players-container button[onclick^="return"] {
+    background-color: #95a5a6;
+    margin-top: 20px;
+    padding: 10px 20px;
+}
+
+.selected-players-container button[onclick^="return"]:hover {
+    background-color: #7f8c8d;
 } 

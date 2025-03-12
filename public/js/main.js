@@ -125,40 +125,58 @@ function renderAllPlayers() {
     allPlayersList.innerHTML = '';
 
     players.forEach(player => {
-        const playerDiv = document.createElement('div');
-        playerDiv.className = 'player-checkbox-item';
-        
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.id = `player${player.id}`;
-        checkbox.value = player.id;
-        checkbox.checked = selectedPlayers.some(p => p.id === player.id);
-        
-        const label = document.createElement('label');
-        label.htmlFor = `player${player.id}`;
-        label.textContent = player.name;
-        
-        const deleteButton = document.createElement('button');
-        deleteButton.className = 'delete-player';
-        deleteButton.textContent = 'Delete';
-        deleteButton.onclick = () => handleDeletePlayer(player.id);
-        
-        playerDiv.appendChild(checkbox);
-        playerDiv.appendChild(label);
-        playerDiv.appendChild(deleteButton);
-        
-        allPlayersList.appendChild(playerDiv);
+        // Проверяем, не находится ли игрок уже в какой-либо команде
+        const isInAnyTeam = Object.values(teams).some(team => 
+            team.some(p => p.id === player.id)
+        );
+
+        // Если игрок уже в команде, не показываем его в списке
+        if (!isInAnyTeam) {
+            const playerDiv = document.createElement('div');
+            playerDiv.className = 'player-checkbox-item';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `player${player.id}`;
+            checkbox.value = player.id;
+            checkbox.checked = selectedPlayers.some(p => p.id === player.id);
+            
+            const label = document.createElement('label');
+            label.htmlFor = `player${player.id}`;
+            label.textContent = player.name;
+            
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'delete-player';
+            deleteButton.textContent = 'Delete';
+            deleteButton.onclick = () => handleDeletePlayer(player.id);
+            
+            playerDiv.appendChild(checkbox);
+            playerDiv.appendChild(label);
+            playerDiv.appendChild(deleteButton);
+            
+            allPlayersList.appendChild(playerDiv);
+        }
     });
 }
 
 // Подтверждение выбора игроков
 document.getElementById('confirmSelection').addEventListener('click', () => {
     const checkboxes = document.querySelectorAll('#allPlayersList input[type="checkbox"]:checked');
+    
+    if (checkboxes.length === 0) {
+        alert('Пожалуйста, выберите игроков');
+        return;
+    }
+
     selectedPlayers = Array.from(checkboxes).map(cb => {
         return players.find(p => p.id === parseInt(cb.value));
     });
 
-    // Показываем нужные секции
+    // Скрываем секцию выбора игроков
+    document.querySelector('.player-selection-section').style.display = 'none';
+    document.querySelector('.add-player-section').style.display = 'none';
+
+    // Показываем секцию команд
     document.querySelector('.teams-section').style.display = 'block';
 
     // Очищаем команды
@@ -166,25 +184,63 @@ document.getElementById('confirmSelection').addEventListener('click', () => {
     teams.team2 = [];
     teams.team3 = [];
 
-    // Добавляем кнопки для распределения по командам
-    const playersList = document.getElementById('allPlayersList');
-    const selectedCheckboxes = playersList.querySelectorAll('input[type="checkbox"]:checked');
+    // Создаем новый контейнер для выбранных игроков
+    const selectedPlayersContainer = document.createElement('div');
+    selectedPlayersContainer.className = 'selected-players-container';
+    selectedPlayersContainer.style.marginBottom = '20px';
+
+    // Добавляем заголовок
+    const header = document.createElement('h2');
+    header.textContent = 'Распределение игроков по командам';
+    header.style.marginBottom = '20px';
+    selectedPlayersContainer.appendChild(header);
+
+    // Создаем список выбранных игроков
+    const playersList = document.createElement('div');
+    playersList.className = 'selected-players-list';
     
-    selectedCheckboxes.forEach(checkbox => {
-        const playerId = parseInt(checkbox.value);
-        const playerDiv = checkbox.parentElement;
+    selectedPlayers.forEach(player => {
+        const playerDiv = document.createElement('div');
+        playerDiv.className = 'player-checkbox-item';
         
-        // Добавляем кнопки команд
+        const playerName = document.createElement('span');
+        playerName.textContent = player.name;
+        playerName.style.marginRight = '10px';
+        
         const teamButtons = document.createElement('div');
         teamButtons.className = 'team-buttons';
         teamButtons.innerHTML = `
-            <button onclick="addToTeam(${playerId}, 'team1')">Team 1</button>
-            <button onclick="addToTeam(${playerId}, 'team2')">Team 2</button>
-            <button onclick="addToTeam(${playerId}, 'team3')">Team 3</button>
+            <button onclick="добавитьВКоманду(${player.id}, 'team1')">Команда 1</button>
+            <button onclick="добавитьВКоманду(${player.id}, 'team2')">Команда 2</button>
+            <button onclick="добавитьВКоманду(${player.id}, 'team3')">Команда 3</button>
         `;
         
+        playerDiv.appendChild(playerName);
         playerDiv.appendChild(teamButtons);
+        playersList.appendChild(playerDiv);
     });
+
+    selectedPlayersContainer.appendChild(playersList);
+
+    // Добавляем кнопку "Назад"
+    const backButton = document.createElement('button');
+    backButton.textContent = 'Вернуться к выбору игроков';
+    backButton.style.marginTop = '20px';
+    backButton.onclick = () => {
+        document.querySelector('.player-selection-section').style.display = 'block';
+        document.querySelector('.add-player-section').style.display = 'block';
+        document.querySelector('.teams-section').style.display = 'none';
+        selectedPlayersContainer.remove();
+        teams.team1 = [];
+        teams.team2 = [];
+        teams.team3 = [];
+        renderTeams();
+    };
+    selectedPlayersContainer.appendChild(backButton);
+
+    // Вставляем контейнер перед секцией команд
+    const teamsSection = document.querySelector('.teams-section');
+    teamsSection.parentNode.insertBefore(selectedPlayersContainer, teamsSection);
 
     renderTeams();
 });
@@ -203,7 +259,7 @@ function renderTeams() {
             playerDiv.className = 'team-player';
             playerDiv.innerHTML = `
                 <span>${player.name}</span>
-                <button onclick="removeFromTeam(${player.id}, '${teamName}')">Remove</button>
+                <button onclick="удалитьИзКоманды(${player.id}, '${teamName}')">Удалить</button>
             `;
             teamPlayers.appendChild(playerDiv);
         });
@@ -211,7 +267,7 @@ function renderTeams() {
 }
 
 // Добавление игрока в команду
-function addToTeam(playerId, teamName) {
+function добавитьВКоманду(playerId, teamName) {
     const player = players.find(p => p.id === playerId);
     if (player) {
         // Проверяем, не находится ли игрок уже в какой-либо команде
@@ -220,18 +276,25 @@ function addToTeam(playerId, teamName) {
         );
 
         if (isInAnyTeam) {
-            alert('Этот игрок уже в команде');
+            alert('Этот игрок уже находится в команде');
             return;
         }
 
+        // Добавляем игрока в команду
         teams[teamName].push(player);
+        
+        // Обновляем отображение всех игроков и команд
+        renderAllPlayers();
         renderTeams();
     }
 }
 
 // Удаление игрока из команды
-function removeFromTeam(playerId, teamName) {
+function удалитьИзКоманды(playerId, teamName) {
     teams[teamName] = teams[teamName].filter(player => player.id !== playerId);
+    
+    // Обновляем отображение всех игроков и команд
+    renderAllPlayers();
     renderTeams();
 }
 

@@ -283,18 +283,36 @@ function добавитьВКоманду(playerId, teamName) {
         // Добавляем игрока в команду
         teams[teamName].push(player);
         
-        // Обновляем отображение всех игроков и команд
-        renderAllPlayers();
+        // Скрываем игрока из списка выбранных игроков
+        const playerElements = document.querySelectorAll('.selected-players-list .player-checkbox-item');
+        playerElements.forEach(element => {
+            const nameSpan = element.querySelector('span');
+            if (nameSpan && nameSpan.textContent === player.name) {
+                element.style.display = 'none';
+            }
+        });
+        
+        // Обновляем отображение команд
         renderTeams();
     }
 }
 
 // Удаление игрока из команды
 function удалитьИзКоманды(playerId, teamName) {
-    teams[teamName] = teams[teamName].filter(player => player.id !== playerId);
+    const player = players.find(p => p.id === playerId);
+    teams[teamName] = teams[teamName].filter(p => p.id !== playerId);
     
-    // Обновляем отображение всех игроков и команд
-    renderAllPlayers();
+    // Показываем игрока обратно в списке выбранных игроков
+    if (player) {
+        const playerElements = document.querySelectorAll('.selected-players-list .player-checkbox-item');
+        playerElements.forEach(element => {
+            const nameSpan = element.querySelector('span');
+            if (nameSpan && nameSpan.textContent === player.name) {
+                element.style.display = 'flex';
+            }
+        });
+    }
+    
     renderTeams();
 }
 

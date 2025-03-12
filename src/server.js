@@ -26,20 +26,32 @@ app.use((req, res, next) => {
 
 // CORS middleware
 app.use((req, res, next) => {
-    const allowedOrigins = ['https://footmanager-production.up.railway.app', 'http://localhost:3001'];
+    const allowedOrigins = [
+        'https://footmanager-production.up.railway.app',
+        'https://saimon-production.up.railway.app',
+        'http://localhost:3001',
+        'http://localhost:3000'
+    ];
+    
     const origin = req.headers.origin;
     
-    if (allowedOrigins.includes(origin)) {
+    // Allow any origin in development
+    if (process.env.NODE_ENV === 'development') {
+        res.header('Access-Control-Allow-Origin', '*');
+    } else if (allowedOrigins.includes(origin)) {
         res.header('Access-Control-Allow-Origin', origin);
     }
     
+    // Разрешаем все необходимые заголовки
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     res.header('Access-Control-Allow-Credentials', 'true');
     
+    // Preflight request
     if (req.method === 'OPTIONS') {
         return res.sendStatus(200);
     }
+    
     next();
 });
 

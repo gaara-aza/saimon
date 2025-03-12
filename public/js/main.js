@@ -14,8 +14,12 @@ let teamCaptains = {
     team3: null
 };
 
-// Базовый URL для API
-const API_BASE_URL = 'http://localhost:3001';
+// Конфигурация API URL
+const API_BASE_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3001'
+    : 'https://saimon-production.up.railway.app';
+
+console.log('Using API URL:', API_BASE_URL);
 
 // Загрузка игроков при загрузке страницы
 document.addEventListener('DOMContentLoaded', async () => {
@@ -26,18 +30,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Функция загрузки списка игроков
 async function loadPlayers() {
     try {
+        console.log('Загрузка игроков с:', `${API_BASE_URL}/api/players`);
         const response = await fetch(`${API_BASE_URL}/api/players`);
-        if (!response.ok) {
-            throw new Error('Ошибка при загрузке игроков');
-        }
-        const data = await response.json();
-        players = data;
-        renderPlayers();
-        renderTeams();
-        renderStatistics();
+        const players = await response.json();
+        
+        const playersList = document.getElementById('playersList');
+        playersList.innerHTML = '';
+        
+        players.forEach(player => {
+            const playerElement = document.createElement('div');
+            playerElement.className = 'player-item';
+            playerElement.innerHTML = `
+                <span>${player.name}</span>
+                <button onclick="deletePlayer(${player.id})">Удалить</button>
+            `;
+            playersList.appendChild(playerElement);
+        });
+        
+        // Показываем секцию со списком игроков
+        document.querySelector('.available-players-section').style.display = 'block';
+        
     } catch (error) {
-        console.error('Ошибка загрузки игроков:', error);
-        alert('Ошибка при загрузке списка игроков');
+        console.error('Ошибка при загрузке игроков:', error);
     }
 }
 
@@ -53,6 +67,8 @@ document.getElementById('addPlayerForm').addEventListener('submit', async (e) =>
     }
 
     try {
+        console.log('Отправка запроса на:', `${API_BASE_URL}/api/players`);
+        
         const response = await fetch(`${API_BASE_URL}/api/players`, {
             method: 'POST',
             headers: {
@@ -62,10 +78,12 @@ document.getElementById('addPlayerForm').addEventListener('submit', async (e) =>
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Ошибка при добавлении игрока');
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        const player = await response.json();
+        console.log('Игрок добавлен:', player);
+        
         // Очищаем поле ввода
         nameInput.value = '';
         
@@ -76,7 +94,7 @@ document.getElementById('addPlayerForm').addEventListener('submit', async (e) =>
         renderAllPlayers();
     } catch (error) {
         console.error('Ошибка:', error);
-        alert(error.message || 'Ошибка при добавлении игрока');
+        alert('Ошибка при добавлении игрока');
     }
 });
 
@@ -116,18 +134,10 @@ async function handleDeletePlayer(playerId) {
     console.log('Удаление игрока с ID:', playerId);
     
     try {
-        // Прямой запрос на удаление
-        const url = `${API_BASE_URL}/api/players/${playerId}`;
-        console.log('Отправка DELETE запроса на:', url);
-        
-        const response = await fetch(url, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+        console.log('Удаление игрока:', `${API_BASE_URL}/api/players/${playerId}`);
+        const response = await fetch(`${API_BASE_URL}/api/players/${playerId}`, {
+            method: 'DELETE'
         });
-        
-        console.log('Ответ сервера:', response.status);
         
         if (response.ok) {
             console.log('Игрок успешно удален');
@@ -146,7 +156,6 @@ async function handleDeletePlayer(playerId) {
             
             renderPlayers();
             renderTeams();
-            renderStatistics();
         } else {
             console.error('Ошибка при удалении игрока:', response.status);
             // Попробуем получить текст ошибки
@@ -353,4 +362,28 @@ function renderStatistics() {
         `;
         statsContainer.appendChild(statsDiv);
     });
-} 
+}
+
+// Генерация случайных команд
+async function generateTeams() {
+    try {
+        console.log('Генерация команд:', `${API_BASE_URL}/api/teams/random`);
+        const response = await fetch(`${API_BASE_URL}/api/teams/random`, {
+            method: 'POST'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const teams = await response.json();
+        displayTeams(teams);
+        
+    } catch (error) {
+        console.error('Ошибка при генерации команд:', error);
+        alert('Ошибка при генерации команд');
+    }
+}
+
+// Загружаем игроков при загрузке страницы
+document.addEventListener('DOMContentLoaded', loadPlayers); 

@@ -24,7 +24,6 @@ console.log('Using API URL:', API_BASE_URL);
 // Загрузка игроков при загрузке страницы
 document.addEventListener('DOMContentLoaded', async () => {
     await loadPlayers();
-    renderAllPlayers();
 });
 
 // Функция загрузки списка игроков
@@ -38,7 +37,6 @@ async function loadPlayers() {
         const data = await response.json();
         players = data;
         renderAllPlayers();
-        renderTeams();
     } catch (error) {
         console.error('Ошибка при загрузке игроков:', error);
     }
@@ -108,7 +106,6 @@ async function handleDeletePlayer(playerId) {
                 teams[teamName] = teams[teamName].filter(p => p.id !== playerId);
             });
             
-            renderPlayers();
             renderTeams();
         } else {
             console.error('Ошибка при удалении игрока:', response.status);
@@ -139,7 +136,7 @@ function renderAllPlayers() {
         
         const label = document.createElement('label');
         label.htmlFor = `player${player.id}`;
-        label.textContent = `${player.name} (Games: ${player.gamesPlayed || 0}, Wins: ${player.gamesWon || 0})`;
+        label.textContent = player.name;
         
         const deleteButton = document.createElement('button');
         deleteButton.className = 'delete-player';
@@ -170,54 +167,8 @@ document.getElementById('confirmSelection').addEventListener('click', () => {
     teams.team2 = [];
     teams.team3 = [];
 
-    renderPlayers();
     renderTeams();
 });
-
-// Отображение доступных игроков
-function renderPlayers() {
-    const playersList = document.getElementById('playersList');
-    playersList.innerHTML = '';
-
-    // Показываем только выбранных игроков, которые еще не в командах
-    const availablePlayers = selectedPlayers.filter(player => 
-        !Object.values(teams).flat().find(teamPlayer => teamPlayer.id === player.id)
-    );
-
-    availablePlayers.forEach(player => {
-        const playerDiv = document.createElement('div');
-        playerDiv.className = 'player-item';
-        playerDiv.innerHTML = `
-            <span class="player-name">${player.name}</span>
-            <div class="team-buttons">
-                <button onclick="addToTeam(${player.id}, 'team1')">Team 1</button>
-                <button onclick="addToTeam(${player.id}, 'team2')">Team 2</button>
-                <button onclick="addToTeam(${player.id}, 'team3')">Team 3</button>
-            </div>
-        `;
-        playersList.appendChild(playerDiv);
-    });
-}
-
-// Добавление игрока в команду
-function addToTeam(playerId, teamName) {
-    const player = players.find(p => p.id === playerId);
-    if (player) {
-        teams[teamName].push(player);
-        renderPlayers();
-        renderTeams();
-    }
-}
-
-// Удаление игрока из команды
-function removeFromTeam(playerId, teamName) {
-    if (teamCaptains[teamName] === playerId) {
-        teamCaptains[teamName] = null;
-    }
-    teams[teamName] = teams[teamName].filter(player => player.id !== playerId);
-    renderPlayers();
-    renderTeams();
-}
 
 // Отображение команд
 function renderTeams() {
@@ -241,7 +192,7 @@ function renderTeams() {
 }
 
 // Генерация случайных команд
-async function generateTeams() {
+document.getElementById('randomizeTeams').addEventListener('click', async () => {
     try {
         console.log('Генерация команд:', `${API_BASE_URL}/api/teams/random`);
         const response = await fetch(`${API_BASE_URL}/api/teams/random`, {
@@ -266,6 +217,24 @@ async function generateTeams() {
         console.error('Ошибка при генерации команд:', error);
         alert('Ошибка при генерации команд');
     }
+});
+
+// Добавление игрока в команду
+function addToTeam(playerId, teamName) {
+    const player = players.find(p => p.id === playerId);
+    if (player) {
+        teams[teamName].push(player);
+        renderTeams();
+    }
+}
+
+// Удаление игрока из команды
+function removeFromTeam(playerId, teamName) {
+    if (teamCaptains[teamName] === playerId) {
+        teamCaptains[teamName] = null;
+    }
+    teams[teamName] = teams[teamName].filter(player => player.id !== playerId);
+    renderTeams();
 }
 
 // Инициализация при загрузке страницы

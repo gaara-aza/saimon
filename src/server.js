@@ -37,7 +37,8 @@ app.get('/health', (req, res) => {
     res.json({ 
         status: 'ok',
         timestamp: new Date().toISOString(),
-        env: process.env.NODE_ENV
+        env: process.env.NODE_ENV,
+        port: process.env.PORT
     });
 });
 
@@ -187,6 +188,10 @@ app.put('/api/teams/:teamId/captain', async (req, res) => {
 });
 
 // Маршрут для главной страницы должен быть ПОСЛЕДНИМ
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/index.html'));
 });
@@ -218,16 +223,13 @@ async function startServer() {
 
     } catch (error) {
         console.error('Server startup error:', error);
-        // Не завершаем процесс в production
+        console.error(error.stack);
+        // В production логируем ошибку, но не завершаем процесс
         if (process.env.NODE_ENV !== 'production') {
             process.exit(1);
         }
     }
 }
 
-// Запускаем сервер в зависимости от окружения
-if (process.env.NODE_ENV === 'production') {
-    module.exports = app;
-} else {
-    startServer();
-}
+// В production всегда запускаем сервер
+startServer();

@@ -24,7 +24,6 @@ console.log('Using API URL:', API_BASE_URL);
 // Загрузка игроков при загрузке страницы
 document.addEventListener('DOMContentLoaded', async () => {
     await loadPlayers();
-    renderAllPlayers();
 });
 
 // Функция загрузки списка игроков
@@ -89,14 +88,32 @@ document.getElementById('addPlayerForm').addEventListener('submit', async (e) =>
         
         // Обновляем список игроков
         await loadPlayers();
-        
-        // Обновляем отображение
-        renderAllPlayers();
     } catch (error) {
         console.error('Ошибка:', error);
         alert('Ошибка при добавлении игрока');
     }
 });
+
+// Функция удаления игрока
+async function deletePlayer(playerId) {
+    try {
+        console.log('Удаление игрока:', `${API_BASE_URL}/api/players/${playerId}`);
+        const response = await fetch(`${API_BASE_URL}/api/players/${playerId}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // Обновляем список игроков после удаления
+        await loadPlayers();
+        
+    } catch (error) {
+        console.error('Ошибка при удалении игрока:', error);
+        alert('Ошибка при удалении игрока');
+    }
+}
 
 //    
 function renderAllPlayers() {
@@ -127,44 +144,6 @@ function renderAllPlayers() {
         
         allPlayersList.appendChild(playerDiv);
     });
-}
-
-// Функция удаления игрока
-async function handleDeletePlayer(playerId) {
-    console.log('Удаление игрока с ID:', playerId);
-    
-    try {
-        console.log('Удаление игрока:', `${API_BASE_URL}/api/players/${playerId}`);
-        const response = await fetch(`${API_BASE_URL}/api/players/${playerId}`, {
-            method: 'DELETE'
-        });
-        
-        if (response.ok) {
-            console.log('Игрок успешно удален');
-            
-            // Удаляем игрока из локального массива
-            players = players.filter(p => p.id !== playerId);
-            
-            // Обновляем отображение
-            renderAllPlayers();
-            
-            // Также обновляем другие списки
-            selectedPlayers = selectedPlayers.filter(p => p.id !== playerId);
-            Object.keys(teams).forEach(teamName => {
-                teams[teamName] = teams[teamName].filter(p => p.id !== playerId);
-            });
-            
-            renderPlayers();
-            renderTeams();
-        } else {
-            console.error('Ошибка при удалении игрока:', response.status);
-            // Попробуем получить текст ошибки
-            const errorText = await response.text();
-            console.error('Текст ошибки:', errorText);
-        }
-    } catch (error) {
-        console.error('Исключение при удалении игрока:', error);
-    }
 }
 
 //    
@@ -383,6 +362,27 @@ async function generateTeams() {
         console.error('Ошибка при генерации команд:', error);
         alert('Ошибка при генерации команд');
     }
+}
+
+// Отображение команд
+function displayTeams(teams) {
+    teams.forEach((team, index) => {
+        const teamDiv = document.getElementById(`team${index + 1}`);
+        if (teamDiv) {
+            const teamPlayers = teamDiv.querySelector('.team-players');
+            teamPlayers.innerHTML = '';
+            
+            team.Players.forEach(player => {
+                const playerDiv = document.createElement('div');
+                playerDiv.className = 'team-player';
+                playerDiv.innerHTML = `<span>${player.name}</span>`;
+                teamPlayers.appendChild(playerDiv);
+            });
+        }
+    });
+    
+    // Показываем секцию с командами
+    document.querySelector('.teams-section').style.display = 'block';
 }
 
 // Загружаем игроков при загрузке страницы

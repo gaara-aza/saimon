@@ -26,9 +26,16 @@ app.use((req, res, next) => {
 
 // CORS middleware
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS');
+    const allowedOrigins = ['https://footmanager-production.up.railway.app', 'http://localhost:3001'];
+    const origin = req.headers.origin;
+    
+    if (allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+    }
+    
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
     
     if (req.method === 'OPTIONS') {
         return res.sendStatus(200);
@@ -200,10 +207,21 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-// Error handling middleware
+// API error handler middleware
 app.use((err, req, res, next) => {
-    console.error('Error:', err);
-    res.status(500).json({ error: err.message || 'Internal Server Error' });
+    console.error('API Error:', err);
+    console.error('Stack trace:', err.stack);
+    console.error('Request details:', {
+        method: req.method,
+        url: req.url,
+        body: req.body,
+        query: req.query
+    });
+    
+    res.status(err.status || 500).json({
+        error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message,
+        requestId: req.id
+    });
 });
 
 // Start server
@@ -211,10 +229,12 @@ const PORT = process.env.PORT || 3001;
 
 async function startServer() {
     try {
-        console.log('Starting server...');
+        console.log('=== Server Starting ===');
         console.log('Environment:', process.env.NODE_ENV);
         console.log('Port:', PORT);
         console.log('Database URL exists:', !!process.env.DATABASE_URL);
+        console.log('Current working directory:', process.cwd());
+        console.log('Node version:', process.version);
 
         // Test database connection
         await sequelize.authenticate();
@@ -225,15 +245,33 @@ async function startServer() {
         console.log('Database synchronized');
 
         // Start server
-        app.listen(PORT, '0.0.0.0', () => {
+        const server = app.listen(PORT, '0.0.0.0', () => {
             console.log(`Server is running on port ${PORT}`);
-            console.log(`Health check endpoint: http://localhost:${PORT}/health`);
+            console.log(`Health check endpoint: http://0.0.0.0:${PORT}/health`);
+        });
+
+        // Graceful shutdown
+        process.on('SIGTERM', () => {
+            console.log('SIGTERM received, shutting down gracefully');
+            server.close(() => {
+                console.log('HTTP server closed');
+                sequelize.close().then(() => {
+                    console.log('Database connection closed');
+                    process.exit(0);
+                });
+            });
         });
 
     } catch (error) {
-        console.error('Server startup error:', error);
+        console.error('=== Server Startup Error ===');
         console.error('Error details:', error.message);
         console.error('Stack trace:', error.stack);
+        console.error('Environment details:', {
+            NODE_ENV: process.env.NODE_ENV,
+            PORT: process.env.PORT,
+            DATABASE_URL: !!process.env.DATABASE_URL,
+            PWD: process.cwd()
+        });
         
         if (process.env.NODE_ENV !== 'production') {
             process.exit(1);

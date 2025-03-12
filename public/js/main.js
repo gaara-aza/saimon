@@ -1,4 +1,4 @@
-// Globalnoe hranilische igrokov i komand
+// Глобальное хранилище игроков и команд
 let players = [];
 let selectedPlayers = [];
 let teams = {
@@ -7,7 +7,7 @@ let teams = {
     team3: []
 };
 
-// ���������� ��������� ���������
+// Капитаны команд
 let teamCaptains = {
     team1: null,
     team2: null,
@@ -24,6 +24,7 @@ console.log('Using API URL:', API_BASE_URL);
 // Загрузка игроков при загрузке страницы
 document.addEventListener('DOMContentLoaded', async () => {
     await loadPlayers();
+    renderAllPlayers();
 });
 
 // Функция загрузки списка игроков
@@ -31,24 +32,13 @@ async function loadPlayers() {
     try {
         console.log('Загрузка игроков с:', `${API_BASE_URL}/api/players`);
         const response = await fetch(`${API_BASE_URL}/api/players`);
-        const players = await response.json();
-        
-        const playersList = document.getElementById('playersList');
-        playersList.innerHTML = '';
-        
-        players.forEach(player => {
-            const playerElement = document.createElement('div');
-            playerElement.className = 'player-item';
-            playerElement.innerHTML = `
-                <span>${player.name}</span>
-                <button onclick="deletePlayer(${player.id})">Удалить</button>
-            `;
-            playersList.appendChild(playerElement);
-        });
-        
-        // Показываем секцию со списком игроков
-        document.querySelector('.available-players-section').style.display = 'block';
-        
+        if (!response.ok) {
+            throw new Error('Ошибка при загрузке игроков');
+        }
+        const data = await response.json();
+        players = data;
+        renderAllPlayers();
+        renderTeams();
     } catch (error) {
         console.error('Ошибка при загрузке игроков:', error);
     }
@@ -88,6 +78,7 @@ document.getElementById('addPlayerForm').addEventListener('submit', async (e) =>
         
         // Обновляем список игроков
         await loadPlayers();
+        
     } catch (error) {
         console.error('Ошибка:', error);
         alert('Ошибка при добавлении игрока');
@@ -95,27 +86,43 @@ document.getElementById('addPlayerForm').addEventListener('submit', async (e) =>
 });
 
 // Функция удаления игрока
-async function deletePlayer(playerId) {
+async function handleDeletePlayer(playerId) {
     try {
         console.log('Удаление игрока:', `${API_BASE_URL}/api/players/${playerId}`);
         const response = await fetch(`${API_BASE_URL}/api/players/${playerId}`, {
             method: 'DELETE'
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        if (response.ok) {
+            console.log('Игрок успешно удален');
+            
+            // Удаляем игрока из локального массива
+            players = players.filter(p => p.id !== playerId);
+            
+            // Обновляем отображение
+            renderAllPlayers();
+            
+            // Также обновляем другие списки
+            selectedPlayers = selectedPlayers.filter(p => p.id !== playerId);
+            Object.keys(teams).forEach(teamName => {
+                teams[teamName] = teams[teamName].filter(p => p.id !== playerId);
+            });
+            
+            renderPlayers();
+            renderTeams();
+        } else {
+            console.error('Ошибка при удалении игрока:', response.status);
+            const errorText = await response.text();
+            console.error('Текст ошибки:', errorText);
+            alert('Ошибка при удалении игрока');
         }
-
-        // Обновляем список игроков после удаления
-        await loadPlayers();
-        
     } catch (error) {
-        console.error('Ошибка при удалении игрока:', error);
+        console.error('Исключение при удалении игрока:', error);
         alert('Ошибка при удалении игрока');
     }
 }
 
-//    
+// Отображение всех игроков со статистикой
 function renderAllPlayers() {
     const allPlayersList = document.getElementById('allPlayersList');
     allPlayersList.innerHTML = '';
@@ -128,15 +135,16 @@ function renderAllPlayers() {
         checkbox.type = 'checkbox';
         checkbox.id = `player${player.id}`;
         checkbox.value = player.id;
+        checkbox.checked = selectedPlayers.some(p => p.id === player.id);
         
         const label = document.createElement('label');
         label.htmlFor = `player${player.id}`;
-        label.textContent = `${player.name} (Games: ${player.gamesPlayed}, Wins: ${player.gamesWon})`;
+        label.textContent = `${player.name} (Games: ${player.gamesPlayed || 0}, Wins: ${player.gamesWon || 0})`;
         
         const deleteButton = document.createElement('button');
         deleteButton.className = 'delete-player';
         deleteButton.textContent = 'Delete';
-        deleteButton.addEventListener('click', () => handleDeletePlayer(player.id));
+        deleteButton.onclick = () => handleDeletePlayer(player.id);
         
         playerDiv.appendChild(checkbox);
         playerDiv.appendChild(label);
@@ -146,27 +154,18 @@ function renderAllPlayers() {
     });
 }
 
-//    
+// Подтверждение выбора игроков
 document.getElementById('confirmSelection').addEventListener('click', () => {
     const checkboxes = document.querySelectorAll('#allPlayersList input[type="checkbox"]:checked');
     selectedPlayers = Array.from(checkboxes).map(cb => {
         return players.find(p => p.id === parseInt(cb.value));
     });
 
-    if (selectedPlayers.length < 6) {
-        alert('Please select at least 6 players');
-        return;
-    }
-
-    //     
+    // Показываем нужные секции
     document.querySelector('.team-controls').style.display = 'block';
-    document.querySelector('.available-players-section').style.display = 'block';
     document.querySelector('.teams-section').style.display = 'block';
 
-    //   
-    document.querySelector('.player-selection-section').style.display = 'none';
-
-    //  
+    // Очищаем команды
     teams.team1 = [];
     teams.team2 = [];
     teams.team3 = [];
@@ -175,12 +174,12 @@ document.getElementById('confirmSelection').addEventListener('click', () => {
     renderTeams();
 });
 
-//     
+// Отображение доступных игроков
 function renderPlayers() {
     const playersList = document.getElementById('playersList');
     playersList.innerHTML = '';
 
-    //    ,    
+    // Показываем только выбранных игроков, которые еще не в командах
     const availablePlayers = selectedPlayers.filter(player => 
         !Object.values(teams).flat().find(teamPlayer => teamPlayer.id === player.id)
     );
@@ -191,16 +190,16 @@ function renderPlayers() {
         playerDiv.innerHTML = `
             <span class="player-name">${player.name}</span>
             <div class="team-buttons">
-                <button class="team-button" onclick="addToTeam(${player.id}, 'team1')">1</button>
-                <button class="team-button" onclick="addToTeam(${player.id}, 'team2')">2</button>
-                <button class="team-button" onclick="addToTeam(${player.id}, 'team3')">3</button>
+                <button onclick="addToTeam(${player.id}, 'team1')">Team 1</button>
+                <button onclick="addToTeam(${player.id}, 'team2')">Team 2</button>
+                <button onclick="addToTeam(${player.id}, 'team3')">Team 3</button>
             </div>
         `;
         playersList.appendChild(playerDiv);
     });
 }
 
-// Dobavlenie igroka v komandu
+// Добавление игрока в команду
 function addToTeam(playerId, teamName) {
     const player = players.find(p => p.id === playerId);
     if (player) {
@@ -210,136 +209,34 @@ function addToTeam(playerId, teamName) {
     }
 }
 
-// Udalenie igroka iz komandy
+// Удаление игрока из команды
 function removeFromTeam(playerId, teamName) {
-    //     ,  
     if (teamCaptains[teamName] === playerId) {
         teamCaptains[teamName] = null;
     }
-    
     teams[teamName] = teams[teamName].filter(player => player.id !== playerId);
     renderPlayers();
     renderTeams();
 }
 
-//    
+// Отображение команд
 function renderTeams() {
     Object.keys(teams).forEach(teamName => {
         const teamDiv = document.getElementById(teamName);
-        const teamPlayers = teamDiv.querySelector('.team-players');
-        const captainSelect = teamDiv.querySelector('.captain-select');
-        
-        //     
-        captainSelect.innerHTML = '<option value="">Select Captain</option>';
-        teams[teamName].forEach(player => {
-            const option = document.createElement('option');
-            option.value = player.id;
-            option.textContent = player.name;
-            option.selected = teamCaptains[teamName] === player.id;
-            captainSelect.appendChild(option);
-        });
+        if (!teamDiv) return;
 
-        //    
+        const teamPlayers = teamDiv.querySelector('.team-players');
         teamPlayers.innerHTML = '';
+        
         teams[teamName].forEach(player => {
             const playerDiv = document.createElement('div');
-            playerDiv.className = `team-player ${teamCaptains[teamName] === player.id ? 'captain' : ''}`;
-            
-            const playerContent = `
-                <span>${player.name} ${teamCaptains[teamName] === player.id ? '<span class="captain-badge">C</span>' : ''}</span>
-                <button class="remove-player" onclick="removeFromTeam(${player.id}, '${teamName}')">X</button>
+            playerDiv.className = 'team-player';
+            playerDiv.innerHTML = `
+                <span>${player.name}</span>
+                <button onclick="removeFromTeam(${player.id}, '${teamName}')">Remove</button>
             `;
-            
-            playerDiv.innerHTML = playerContent;
             teamPlayers.appendChild(playerDiv);
         });
-    });
-}
-
-// ��������� ����������� ��� ������ ��������
-document.querySelectorAll('.captain-select').forEach(select => {
-    select.addEventListener('change', async (e) => {
-        const teamId = e.target.dataset.team;
-        const teamName = `team${teamId}`;
-        const playerId = parseInt(e.target.value);
-        
-        teamCaptains[teamName] = playerId || null;
-        
-        try {
-            // ���������� ���������� � �������� �� ������
-            const response = await fetch(`${API_BASE_URL}/api/teams/${teamId}/captain`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ captainId: playerId })
-            });
-
-            if (response.ok) {
-                renderTeams();
-            } else {
-                console.error('Error updating team captain');
-                // ���������� ��������� ��� ������
-                teamCaptains[teamName] = null;
-                renderTeams();
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            // ���������� ��������� ��� ������
-            teamCaptains[teamName] = null;
-            renderTeams();
-        }
-    });
-});
-
-// ��������� ���������� ���������� �������������
-document.getElementById('randomizeTeams').addEventListener('click', async () => {
-    if (selectedPlayers.length < 6) {
-        alert('Not enough players selected');
-        return;
-    }
-
-    // ���������� ��������� ��� ����� �������������
-    teamCaptains = {
-        team1: null,
-        team2: null,
-        team3: null
-    };
-
-    // ��������� ��� ������������� �������� ��� ���������
-    const shuffledPlayers = [...selectedPlayers].sort(() => Math.random() - 0.5);
-    const playersPerTeam = Math.floor(shuffledPlayers.length / 3);
-
-    teams.team1 = shuffledPlayers.slice(0, playersPerTeam);
-    teams.team2 = shuffledPlayers.slice(playersPerTeam, playersPerTeam * 2);
-    teams.team3 = shuffledPlayers.slice(playersPerTeam * 2);
-
-    renderPlayers();
-    renderTeams();
-});
-
-// ������� ���������� 
-function renderStatistics() {
-    const statsContainer = document.getElementById('playerStats');
-    statsContainer.innerHTML = '';
-
-    players.forEach(player => {
-        const statsDiv = document.createElement('div');
-        statsDiv.className = 'player-stats';
-        statsDiv.innerHTML = `
-            <h4>${player.name}</h4>
-            <div class="stats-info">
-                <span>Games Played:</span>
-                <span>${player.gamesPlayed}</span>
-                <span>Games Won:</span>
-                <span>${player.gamesWon}</span>
-                <span>Points:</span>
-                <span>${player.points}</span>
-                <span>Win Rate:</span>
-                <span>${player.gamesPlayed ? Math.round(player.gamesWon / player.gamesPlayed * 100) : 0}%</span>
-            </div>
-        `;
-        statsContainer.appendChild(statsDiv);
     });
 }
 
@@ -355,8 +252,15 @@ async function generateTeams() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const teams = await response.json();
-        displayTeams(teams);
+        const teamsData = await response.json();
+        teams = {
+            team1: teamsData[0].Players || [],
+            team2: teamsData[1].Players || [],
+            team3: teamsData[2].Players || []
+        };
+        
+        renderTeams();
+        document.querySelector('.teams-section').style.display = 'block';
         
     } catch (error) {
         console.error('Ошибка при генерации команд:', error);
@@ -364,26 +268,5 @@ async function generateTeams() {
     }
 }
 
-// Отображение команд
-function displayTeams(teams) {
-    teams.forEach((team, index) => {
-        const teamDiv = document.getElementById(`team${index + 1}`);
-        if (teamDiv) {
-            const teamPlayers = teamDiv.querySelector('.team-players');
-            teamPlayers.innerHTML = '';
-            
-            team.Players.forEach(player => {
-                const playerDiv = document.createElement('div');
-                playerDiv.className = 'team-player';
-                playerDiv.innerHTML = `<span>${player.name}</span>`;
-                teamPlayers.appendChild(playerDiv);
-            });
-        }
-    });
-    
-    // Показываем секцию с командами
-    document.querySelector('.teams-section').style.display = 'block';
-}
-
-// Загружаем игроков при загрузке страницы
+// Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', loadPlayers); 

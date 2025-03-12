@@ -2,10 +2,9 @@ const { Sequelize } = require('sequelize');
 
 let sequelize;
 
-// Проверяем наличие URL базы данных
-if (process.env.DATABASE_URL || process.env.NEON_DATABASE_URL) {
-    const databaseUrl = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL;
-    sequelize = new Sequelize(databaseUrl, {
+if (process.env.DATABASE_URL) {
+    // Railway PostgreSQL connection
+    sequelize = new Sequelize(process.env.DATABASE_URL, {
         dialect: 'postgres',
         dialectOptions: {
             ssl: {
@@ -22,7 +21,7 @@ if (process.env.DATABASE_URL || process.env.NEON_DATABASE_URL) {
         logging: false
     });
 } else {
-    // Локальное подключение
+    // Local connection
     sequelize = new Sequelize('postgres', 'postgres', 'postgres', {
         host: 'localhost',
         dialect: 'postgres',
@@ -36,15 +35,16 @@ if (process.env.DATABASE_URL || process.env.NEON_DATABASE_URL) {
     });
 }
 
-// Проверяем подключение
+// Test connection
 sequelize
     .authenticate()
     .then(() => {
         console.log('Database connection successful');
-        console.log('Using Database URL:', process.env.DATABASE_URL ? 'Railway/Fly.io' : (process.env.NEON_DATABASE_URL ? 'Neon' : 'Local'));
+        console.log('Database URL:', process.env.DATABASE_URL ? 'Using Railway PostgreSQL' : 'Using Local Database');
     })
     .catch(err => {
         console.error('Database connection error:', err);
+        console.error('Error details:', err.message);
     });
 
 module.exports = sequelize; 

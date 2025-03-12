@@ -2,9 +2,13 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const sequelize = require('./config/database');
+const checkRequiredEnvVars = require('./config/checkEnv');
 const Player = require('./models/Player');
 const Team = require('./models/Team');
 const TeamPlayer = require('./models/TeamPlayer');
+
+// Check environment variables
+checkRequiredEnvVars();
 
 const app = express();
 
@@ -210,26 +214,32 @@ async function startServer() {
         console.log('Starting server...');
         console.log('Environment:', process.env.NODE_ENV);
         console.log('Port:', PORT);
+        console.log('Database URL exists:', !!process.env.DATABASE_URL);
 
+        // Test database connection
         await sequelize.authenticate();
         console.log('Database connection successful');
 
+        // Sync database
         await sequelize.sync();
         console.log('Database synchronized');
 
+        // Start server
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`Server is running on port ${PORT}`);
+            console.log(`Health check endpoint: http://localhost:${PORT}/health`);
         });
 
     } catch (error) {
         console.error('Server startup error:', error);
-        console.error(error.stack);
-        // В production логируем ошибку, но не завершаем процесс
+        console.error('Error details:', error.message);
+        console.error('Stack trace:', error.stack);
+        
         if (process.env.NODE_ENV !== 'production') {
             process.exit(1);
         }
     }
 }
 
-// В production всегда запускаем сервер
+// Start server
 startServer();

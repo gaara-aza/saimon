@@ -159,13 +159,32 @@ document.getElementById('confirmSelection').addEventListener('click', () => {
     });
 
     // Показываем нужные секции
-    document.querySelector('.team-controls').style.display = 'block';
     document.querySelector('.teams-section').style.display = 'block';
 
     // Очищаем команды
     teams.team1 = [];
     teams.team2 = [];
     teams.team3 = [];
+
+    // Добавляем кнопки для распределения по командам
+    const playersList = document.getElementById('allPlayersList');
+    const selectedCheckboxes = playersList.querySelectorAll('input[type="checkbox"]:checked');
+    
+    selectedCheckboxes.forEach(checkbox => {
+        const playerId = parseInt(checkbox.value);
+        const playerDiv = checkbox.parentElement;
+        
+        // Добавляем кнопки команд
+        const teamButtons = document.createElement('div');
+        teamButtons.className = 'team-buttons';
+        teamButtons.innerHTML = `
+            <button onclick="addToTeam(${playerId}, 'team1')">Team 1</button>
+            <button onclick="addToTeam(${playerId}, 'team2')">Team 2</button>
+            <button onclick="addToTeam(${playerId}, 'team3')">Team 3</button>
+        `;
+        
+        playerDiv.appendChild(teamButtons);
+    });
 
     renderTeams();
 });
@@ -191,38 +210,20 @@ function renderTeams() {
     });
 }
 
-// Генерация случайных команд
-document.getElementById('randomizeTeams').addEventListener('click', async () => {
-    try {
-        console.log('Генерация команд:', `${API_BASE_URL}/api/teams/random`);
-        const response = await fetch(`${API_BASE_URL}/api/teams/random`, {
-            method: 'POST'
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const teamsData = await response.json();
-        teams = {
-            team1: teamsData[0].Players || [],
-            team2: teamsData[1].Players || [],
-            team3: teamsData[2].Players || []
-        };
-        
-        renderTeams();
-        document.querySelector('.teams-section').style.display = 'block';
-        
-    } catch (error) {
-        console.error('Ошибка при генерации команд:', error);
-        alert('Ошибка при генерации команд');
-    }
-});
-
 // Добавление игрока в команду
 function addToTeam(playerId, teamName) {
     const player = players.find(p => p.id === playerId);
     if (player) {
+        // Проверяем, не находится ли игрок уже в какой-либо команде
+        const isInAnyTeam = Object.values(teams).some(team => 
+            team.some(p => p.id === playerId)
+        );
+
+        if (isInAnyTeam) {
+            alert('Этот игрок уже в команде');
+            return;
+        }
+
         teams[teamName].push(player);
         renderTeams();
     }
@@ -230,9 +231,6 @@ function addToTeam(playerId, teamName) {
 
 // Удаление игрока из команды
 function removeFromTeam(playerId, teamName) {
-    if (teamCaptains[teamName] === playerId) {
-        teamCaptains[teamName] = null;
-    }
     teams[teamName] = teams[teamName].filter(player => player.id !== playerId);
     renderTeams();
 }

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход | Football Manager</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .auth-container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .auth-form input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .auth-form button {
+            padding: 12px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .auth-form button:hover {
+            background-color: #2980b9;
+        }
+
+        .auth-switch {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .auth-switch button {
+            background: none;
+            border: none;
+            color: #3498db;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            text-align: center;
+            margin: 10px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <!-- Форма входа -->
+        <div id="loginForm" class="auth-form">
+            <h2>Вход в систему</h2>
+            <div class="error-message" id="loginError"></div>
+            <input type="text" id="loginUsername" placeholder="Имя пользователя" required>
+            <input type="password" id="loginPassword" placeholder="Пароль" required>
+            <button onclick="login()">Войти</button>
+            <div class="auth-switch">
+                <button onclick="showRegisterForm()">Зарегистрироваться</button>
+            </div>
+        </div>
+
+        <!-- Форма регистрации -->
+        <div id="registerForm" class="auth-form" style="display: none;">
+            <h2>Регистрация</h2>
+            <div class="error-message" id="registerError"></div>
+            <input type="text" id="registerUsername" placeholder="Имя пользователя" required>
+            <input type="password" id="registerPassword" placeholder="Пароль" required>
+            <input type="password" id="confirmPassword" placeholder="Подтвердите пароль" required>
+            <button onclick="register()">Зарегистрироваться</button>
+            <div class="auth-switch">
+                <button onclick="showLoginForm()">Уже есть аккаунт? Войти</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Переключение между формами
+        function showLoginForm() {
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+        }
+
+        function showRegisterForm() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+        }
+
+        // Функция входа
+        async function login() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorElement = document.getElementById('loginError');
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Ошибка входа');
+                }
+
+                // Успешный вход
+                window.location.href = '/';
+            } catch (error) {
+                errorElement.textContent = error.message;
+                errorElement.style.display = 'block';
+            }
+        }
+
+        // Функция регистрации
+        async function register() {
+            const username = document.getElementById('registerUsername').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const errorElement = document.getElementById('registerError');
+
+            if (password !== confirmPassword) {
+                errorElement.textContent = 'Пароли не совпадают';
+                errorElement.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Ошибка регистрации');
+                }
+
+                // Успешная регистрация
+                window.location.href = '/';
+            } catch (error) {
+                errorElement.textContent = error.message;
+                errorElement.style.display = 'block';
+            }
+        }
+
+        // Обработка нажатия Enter
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const form = input.closest('.auth-form');
+                    if (form.id === 'loginForm') {
+                        login();
+                    } else if (form.id === 'registerForm') {
+                        register();
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

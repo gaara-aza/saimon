@@ -6,6 +6,10 @@ const checkRequiredEnvVars = require('./config/checkEnv');
 const Player = require('./models/Player');
 const Team = require('./models/Team');
 const TeamPlayer = require('./models/TeamPlayer');
+const cookieParser = require('cookie-parser');
+const authRoutes = require('./routes/auth');
+const jwt = require('jsonwebtoken');
+const User = require('./models/User');
 
 // Check environment variables
 checkRequiredEnvVars();
@@ -17,6 +21,9 @@ app.use(express.json());
 
 // Настройка статических файлов
 app.use(express.static(path.join(__dirname, '../public')));
+
+// Добавляем middleware для работы с куками
+app.use(cookieParser());
 
 // Логирование запросов
 app.use((req, res, next) => {
@@ -210,13 +217,47 @@ app.put('/api/teams/:teamId/captain', async (req, res) => {
     }
 });
 
-// Маршрут для главной страницы должен быть ПОСЛЕДНИМ
-app.get('/', (req, res) => {
+// Добавляем маршруты для авторизации
+app.use('/api/auth', authRoutes);
+
+// Маршрут для страницы входа
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/login.html'));
+});
+
+// Middleware для проверки авторизации на главной странице
+const checkAuth = async (req, res, next) => {
+    const token = req.cookies.token;
+    
+    if (!token) {
+        return res.redirect('/login');
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findByPk(decoded.id);
+        
+        if (!user) {
+            res.clearCookie('token');
+            return res.redirect('/login');
+        }
+
+        req.user = user;
+        next();
+    } catch (error) {
+        res.clearCookie('token');
+        return res.redirect('/login');
+    }
+};
+
+// Защищаем главную страницу
+app.get('/', checkAuth, (req, res) => {
     res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
+// Обработка всех остальных маршрутов должна быть в конце
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
+    res.redirect('/');
 });
 
 // API error handler middleware

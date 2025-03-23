@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const { sequelize } = require('../config/database');
 
 const Player = sequelize.define('Player', {
     id: {
@@ -10,6 +10,22 @@ const Player = sequelize.define('Player', {
     name: {
         type: DataTypes.STRING,
         allowNull: false
+    },
+    number: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    position: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    birthDate: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    active: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
     },
     isSelected: {
         type: DataTypes.BOOLEAN,
@@ -28,6 +44,8 @@ const Player = sequelize.define('Player', {
         type: DataTypes.INTEGER,
         defaultValue: 0
     }
+}, {
+    timestamps: true
 });
 
 module.exports = Player; 

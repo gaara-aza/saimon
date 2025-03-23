@@ -1,83 +1,88 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
+const telegramBot = require('../services/telegramBot');
+
+// Генерация случайного кода подтверждения
+function generateVerificationCode() {
+    return Math.floor(1000 + Math.random() * 9000).toString();
+}
 
 // Генерация JWT токена
 const generateToken = (user) => {
     return jwt.sign(
-        { id: user.id, username: user.username, role: user.role },
+        { id: user.id, phone: user.phone },
         process.env.JWT_SECRET,
-        { expiresIn: '24h' }
+        { expiresIn: '30d' }
     );
 };
 
-// Регистрация
-const register = async (req, res) => {
+// Запрос кода подтверждения
+const requestVerificationCode = async (req, res) => {
     try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+        const { phone } = req.body;
+
+        // Проверяем формат номера телефона
+        if (!/^\+7[0-9]{10}$/.test(phone)) {
+            return res.status(400).json({ 
+                message: 'Неверный формат номера телефона. Используйте формат: +7XXXXXXXXXX' 
+            });
         }
 
-        const { username, password } = req.body;
-
-        // Проверяем, существует ли пользователь
-        const existingUser = await User.findOne({ where: { username } });
-        if (existingUser) {
-            return res.status(400).json({ message: 'Пользователь уже существует' });
-        }
-
-        // Создаем нового пользователя
-        const user = await User.create({
-            username,
-            password
-        });
-
-        const token = generateToken(user);
-
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 24 * 60 * 60 * 1000 // 24 часа
-        });
-
-        res.status(201).json({
-            message: 'Пользователь успешно зарегистрирован',
-            user: {
-                id: user.id,
-                username: user.username,
-                role: user.role
+        // Находим или создаем пользователя
+        let [user, created] = await User.findOrCreate({
+            where: { phone },
+            defaults: {
+                verificationCode: generateVerificationCode(),
+                isVerified: false
             }
         });
+
+        if (!created) {
+            // Если пользователь существует, обновляем код
+            user.verificationCode = generateVerificationCode();
+            await user.save();
+        }
+
+        // Пытаемся отправить код через Telegram
+        const sentViaTelegram = await telegramBot.sendVerificationCode(phone, user.verificationCode);
+
+        // В режиме разработки или если отправка через Telegram не удалась,
+        // возвращаем код в ответе
+        if (process.env.NODE_ENV !== 'production' || !sentViaTelegram) {
+            console.log(`Код подтверждения для ${phone}: ${user.verificationCode}`);
+            res.json({ 
+                message: 'Код подтверждения отправлен',
+                code: user.verificationCode 
+            });
+        } else {
+            res.json({ 
+                message: 'Код подтверждения отправлен в Telegram'
+            });
+        }
     } catch (error) {
-        console.error('Ошибка при регистрации:', error);
-        res.status(500).json({ message: 'Ошибка сервера при регистрации' });
+        console.error('Ошибка при отправке кода:', error);
+        res.status(500).json({ message: 'Ошибка сервера' });
     }
 };
 
-// Вход
-const login = async (req, res) => {
+// Подтверждение кода
+const verifyCode = async (req, res) => {
     try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
+        const { phone, code } = req.body;
 
-        const { username, password } = req.body;
-
-        // Находим пользователя
-        const user = await User.findOne({ where: { username } });
+        const user = await User.findOne({ where: { phone } });
         if (!user) {
-            return res.status(401).json({ message: 'Неверное имя пользователя или пароль' });
+            return res.status(404).json({ message: 'Пользователь не найден' });
         }
 
-        // Проверяем пароль
-        const isValidPassword = await user.validatePassword(password);
-        if (!isValidPassword) {
-            return res.status(401).json({ message: 'Неверное имя пользователя или пароль' });
+        if (user.verificationCode !== code) {
+            return res.status(400).json({ message: 'Неверный код подтверждения' });
         }
 
-        // Обновляем время последнего входа
+        // Подтверждаем пользователя
+        user.isVerified = true;
+        user.verificationCode = null; // Очищаем код
         user.lastLogin = new Date();
         await user.save();
 
@@ -86,20 +91,43 @@ const login = async (req, res) => {
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            maxAge: 24 * 60 * 60 * 1000 // 24 часа
+            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 дней
         });
 
         res.json({
-            message: 'Успешный вход',
+            message: 'Успешная авторизация',
             user: {
                 id: user.id,
-                username: user.username,
-                role: user.role
+                phone: user.phone,
+                name: user.name
             }
         });
     } catch (error) {
-        console.error('Ошибка при входе:', error);
-        res.status(500).json({ message: 'Ошибка сервера при входе' });
+        console.error('Ошибка при проверке кода:', error);
+        res.status(500).json({ message: 'Ошибка сервера' });
+    }
+};
+
+// Обновление профиля
+const updateProfile = async (req, res) => {
+    try {
+        const { name } = req.body;
+        const user = await User.findByPk(req.user.id);
+
+        user.name = name;
+        await user.save();
+
+        res.json({
+            message: 'Профиль обновлен',
+            user: {
+                id: user.id,
+                phone: user.phone,
+                name: user.name
+            }
+        });
+    } catch (error) {
+        console.error('Ошибка при обновлении профиля:', error);
+        res.status(500).json({ message: 'Ошибка сервера' });
     }
 };
 
@@ -113,7 +141,7 @@ const logout = (req, res) => {
 const getCurrentUser = async (req, res) => {
     try {
         const user = await User.findByPk(req.user.id, {
-            attributes: ['id', 'username', 'role', 'lastLogin']
+            attributes: ['id', 'phone', 'name', 'lastLogin', 'isVerified', 'telegramId']
         });
         res.json(user);
     } catch (error) {
@@ -123,8 +151,9 @@ const getCurrentUser = async (req, res) => {
 };
 
 module.exports = {
-    register,
-    login,
+    requestVerificationCode,
+    verifyCode,
+    updateProfile,
     logout,
     getCurrentUser
 }; 

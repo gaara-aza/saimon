@@ -22,7 +22,7 @@
         }
 
         .auth-form input {
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 16px;
@@ -42,17 +42,9 @@
             background-color: #2980b9;
         }
 
-        .auth-switch {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .auth-switch button {
-            background: none;
-            border: none;
-            color: #3498db;
-            cursor: pointer;
-            text-decoration: underline;
+        .auth-form button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
         }
 
         .error-message {
@@ -61,124 +53,208 @@
             margin: 10px 0;
             display: none;
         }
+
+        .success-message {
+            color: #27ae60;
+            text-align: center;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .code-input {
+            display: none;
+        }
+
+        .code-input input {
+            text-align: center;
+            letter-spacing: 0.5em;
+            font-size: 24px;
+        }
+
+        .timer {
+            text-align: center;
+            color: #7f8c8d;
+            margin-top: 10px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
     <div class="auth-container">
-        <!-- Форма входа -->
-        <div id="loginForm" class="auth-form">
+        <div class="auth-form">
             <h2>Вход в систему</h2>
-            <div class="error-message" id="loginError"></div>
-            <input type="text" id="loginUsername" placeholder="Имя пользователя" required>
-            <input type="password" id="loginPassword" placeholder="Пароль" required>
-            <button onclick="login()">Войти</button>
-            <div class="auth-switch">
-                <button onclick="showRegisterForm()">Зарегистрироваться</button>
-            </div>
-        </div>
+            
+            <!-- Сообщения -->
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
 
-        <!-- Форма регистрации -->
-        <div id="registerForm" class="auth-form" style="display: none;">
-            <h2>Регистрация</h2>
-            <div class="error-message" id="registerError"></div>
-            <input type="text" id="registerUsername" placeholder="Имя пользователя" required>
-            <input type="password" id="registerPassword" placeholder="Пароль" required>
-            <input type="password" id="confirmPassword" placeholder="Подтвердите пароль" required>
-            <button onclick="register()">Зарегистрироваться</button>
-            <div class="auth-switch">
-                <button onclick="showLoginForm()">Уже есть аккаунт? Войти</button>
+            <!-- Форма ввода телефона -->
+            <div id="phoneForm">
+                <input 
+                    type="tel" 
+                    id="phone" 
+                    placeholder="+7XXXXXXXXXX" 
+                    pattern="\+7[0-9]{10}"
+                    required
+                >
+                <button onclick="requestCode()">Получить код</button>
+            </div>
+
+            <!-- Форма ввода кода -->
+            <div id="codeForm" class="code-input">
+                <input 
+                    type="text" 
+                    id="code" 
+                    placeholder="0000" 
+                    maxlength="4" 
+                    pattern="[0-9]{4}"
+                    required
+                >
+                <button onclick="verifyCode()">Подтвердить</button>
+                <div class="timer" id="timer"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // Переключение между формами
-        function showLoginForm() {
-            document.getElementById('registerForm').style.display = 'none';
-            document.getElementById('loginForm').style.display = 'block';
-        }
+        let currentPhone = '';
+        let timerInterval;
 
-        function showRegisterForm() {
-            document.getElementById('loginForm').style.display = 'none';
-            document.getElementById('registerForm').style.display = 'block';
-        }
+        // Функция запроса кода
+        async function requestCode() {
+            const phoneInput = document.getElementById('phone');
+            const phone = phoneInput.value;
+            const errorElement = document.getElementById('errorMessage');
+            const successElement = document.getElementById('successMessage');
 
-        // Функция входа
-        async function login() {
-            const username = document.getElementById('loginUsername').value;
-            const password = document.getElementById('loginPassword').value;
-            const errorElement = document.getElementById('loginError');
-
-            try {
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ username, password }),
-                    credentials: 'include'
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.message || 'Ошибка входа');
-                }
-
-                // Успешный вход
-                window.location.href = '/';
-            } catch (error) {
-                errorElement.textContent = error.message;
+            // Проверка формата номера
+            if (!/^\+7[0-9]{10}$/.test(phone)) {
+                errorElement.textContent = 'Введите номер в формате +7XXXXXXXXXX';
                 errorElement.style.display = 'block';
-            }
-        }
-
-        // Функция регистрации
-        async function register() {
-            const username = document.getElementById('registerUsername').value;
-            const password = document.getElementById('registerPassword').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            const errorElement = document.getElementById('registerError');
-
-            if (password !== confirmPassword) {
-                errorElement.textContent = 'Пароли не совпадают';
-                errorElement.style.display = 'block';
+                successElement.style.display = 'none';
                 return;
             }
 
             try {
-                const response = await fetch('/api/auth/register', {
+                const response = await fetch('/api/auth/request-code', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ username, password }),
-                    credentials: 'include'
+                    body: JSON.stringify({ phone })
                 });
 
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.message || 'Ошибка регистрации');
+                    throw new Error(data.message || 'Ошибка отправки кода');
                 }
 
-                // Успешная регистрация
-                window.location.href = '/';
+                // Сохраняем телефон
+                currentPhone = phone;
+
+                // Показываем форму ввода кода
+                document.getElementById('phoneForm').style.display = 'none';
+                document.getElementById('codeForm').style.display = 'block';
+                
+                // Показываем сообщение об успехе
+                successElement.textContent = 'Код отправлен на ваш телефон';
+                successElement.style.display = 'block';
+                errorElement.style.display = 'none';
+
+                // Запускаем таймер
+                startTimer(60);
+
+                // В режиме разработки показываем код
+                console.log('Код подтверждения:', data.code);
+
             } catch (error) {
                 errorElement.textContent = error.message;
                 errorElement.style.display = 'block';
+                successElement.style.display = 'none';
             }
         }
+
+        // Функция проверки кода
+        async function verifyCode() {
+            const codeInput = document.getElementById('code');
+            const code = codeInput.value;
+            const errorElement = document.getElementById('errorMessage');
+            const successElement = document.getElementById('successMessage');
+
+            try {
+                const response = await fetch('/api/auth/verify-code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        phone: currentPhone,
+                        code: code 
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Ошибка проверки кода');
+                }
+
+                // Перенаправляем на главную страницу
+                window.location.href = '/';
+
+            } catch (error) {
+                errorElement.textContent = error.message;
+                errorElement.style.display = 'block';
+                successElement.style.display = 'none';
+            }
+        }
+
+        // Функция запуска таймера
+        function startTimer(seconds) {
+            const timerElement = document.getElementById('timer');
+            let timeLeft = seconds;
+
+            clearInterval(timerInterval);
+            
+            function updateTimer() {
+                timerElement.textContent = `Повторная отправка через ${timeLeft} сек.`;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerElement.textContent = 'Можно запросить код повторно';
+                    // Показываем форму телефона снова
+                    document.getElementById('phoneForm').style.display = 'block';
+                }
+                timeLeft--;
+            }
+
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        // Обработка ввода в поле кода
+        document.getElementById('code').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 4);
+        });
+
+        // Обработка ввода в поле телефона
+        document.getElementById('phone').addEventListener('input', function(e) {
+            let value = this.value.replace(/[^0-9+]/g, '');
+            if (!value.startsWith('+7')) {
+                value = '+7' + value.substring(value.startsWith('+') ? 1 : 0);
+            }
+            this.value = value.slice(0, 12);
+        });
 
         // Обработка нажатия Enter
         document.querySelectorAll('input').forEach(input => {
             input.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
-                    const form = input.closest('.auth-form');
-                    if (form.id === 'loginForm') {
-                        login();
-                    } else if (form.id === 'registerForm') {
-                        register();
+                    if (input.id === 'phone') {
+                        requestCode();
+                    } else if (input.id === 'code') {
+                        verifyCode();
                     }
                 }
             });

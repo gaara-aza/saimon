@@ -1,24 +1,13 @@
 const express = require('express');
-const { body } = require('express-validator');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 
-// Валидация для регистрации и входа
-const validateAuth = [
-    body('username')
-        .trim()
-        .isLength({ min: 3, max: 30 })
-        .withMessage('Имя пользователя должно быть от 3 до 30 символов'),
-    body('password')
-        .isLength({ min: 6 })
-        .withMessage('Пароль должен быть не менее 6 символов')
-];
-
-// Маршруты
-router.post('/register', validateAuth, authController.register);
-router.post('/login', validateAuth, authController.login);
-router.post('/logout', auth, authController.logout);
-router.get('/me', auth, authController.getCurrentUser);
+// Маршруты для авторизации по телефону
+router.post('/request-code', authController.requestVerificationCode);
+router.post('/verify-code', authController.verifyCode);
+router.post('/logout', authenticateToken, authController.logout);
+router.get('/me', authenticateToken, authController.getCurrentUser);
+router.put('/profile', authenticateToken, authController.updateProfile);
 
 module.exports = router; 

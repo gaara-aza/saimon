@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const { sequelize } = require('../config/database');
 const bcrypt = require('bcryptjs');
 
 const User = sequelize.define('User', {
@@ -8,26 +8,37 @@ const User = sequelize.define('User', {
         primaryKey: true,
         autoIncrement: true
     },
-    username: {
+    phone: {
         type: DataTypes.STRING,
-        allowNull: false,
         unique: true,
+        allowNull: false,
         validate: {
-            len: [3, 30]
+            is: /^\+7[0-9]{10}$/ // Формат: +7XXXXXXXXXX
         }
     },
-    password: {
+    name: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true
     },
-    role: {
-        type: DataTypes.ENUM('admin', 'user'),
-        defaultValue: 'user'
+    telegramId: {
+        type: DataTypes.STRING,
+        unique: true,
+        allowNull: true
+    },
+    verificationCode: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    isVerified: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
     },
     lastLogin: {
-        type: DataTypes.DATE
+        type: DataTypes.DATE,
+        allowNull: true
     }
 }, {
+    timestamps: true,
     hooks: {
         beforeCreate: async (user) => {
             if (user.password) {

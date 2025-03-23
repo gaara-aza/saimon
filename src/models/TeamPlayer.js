@@ -1,23 +1,24 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const { sequelize } = require('../config/database');
 const Team = require('./Team');
 const Player = require('./Player');
 
 const TeamPlayer = sequelize.define('TeamPlayer', {
-    teamId: {
+    id: {
         type: DataTypes.INTEGER,
-        references: {
-            model: Team,
-            key: 'id'
-        }
+        primaryKey: true,
+        autoIncrement: true
     },
-    playerId: {
-        type: DataTypes.INTEGER,
-        references: {
-            model: Player,
-            key: 'id'
-        }
+    joinDate: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW
+    },
+    leaveDate: {
+        type: DataTypes.DATE,
+        allowNull: true
     }
+}, {
+    timestamps: true
 });
 
 // Define relationships

@@ -1,27 +1,23 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-const auth = async (req, res, next) => {
+const authenticateToken = (req, res, next) => {
+    const token = req.cookies.token;
+
+    if (!token) {
+        return res.status(401).json({ message: 'Требуется авторизация' });
+    }
+
     try {
-        const token = req.cookies.token || req.header('Authorization')?.replace('Bearer ', '');
-        
-        if (!token) {
-            return res.status(401).json({ message: 'Требуется авторизация' });
-        }
-
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findByPk(decoded.id);
-
-        if (!user) {
-            return res.status(401).json({ message: 'Пользователь не найден' });
-        }
-
-        req.user = user;
-        req.token = token;
+        req.user = decoded;
         next();
     } catch (error) {
-        res.status(401).json({ message: 'Ошибка авторизации' });
+        console.error('Ошибка проверки токена:', error);
+        res.status(401).json({ message: 'Недействительный токен' });
     }
 };
 
-module.exports = auth; 
+module.exports = {
+    authenticateToken
+}; 

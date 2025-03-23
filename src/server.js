@@ -49,6 +49,65 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Диагностический эндпоинт для проверки базы данных
+app.get('/api/public/diagnostic', async (req, res) => {
+    try {
+        // Получаем диалект базы данных
+        const dialectInfo = sequelize.getDialect();
+        
+        // Проверяем подключение к базе данных
+        const { testConnection } = require('./config/database');
+        const dbConnected = await testConnection();
+        
+        // Проверяем наличие таблицы Players
+        let tableExists = false;
+        try {
+            if (dialectInfo === 'postgres') {
+                const tableCheck = await sequelize.query(`
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'Players'
+                    );
+                `, { type: QueryTypes.SELECT });
+                tableExists = tableCheck[0].exists;
+            } else if (dialectInfo === 'sqlite') {
+                const tableCheck = await sequelize.query(`
+                    SELECT name FROM sqlite_master 
+                    WHERE type='table' AND name='Players';
+                `, { type: QueryTypes.SELECT });
+                tableExists = tableCheck.length > 0;
+            }
+        } catch (err) {
+            console.error('Ошибка при проверке таблицы:', err);
+        }
+        
+        // Проверяем количество пользователей
+        let usersCount = 0;
+        try {
+            const users = await sequelize.query(`SELECT COUNT(*) as count FROM "Users"`, { type: QueryTypes.SELECT });
+            usersCount = users[0].count;
+        } catch (err) {
+            console.error('Ошибка при подсчете пользователей:', err);
+        }
+        
+        res.json({
+            status: 'ok',
+            databaseConnected: dbConnected,
+            dialect: dialectInfo,
+            playersTableExists: tableExists,
+            usersCount: usersCount,
+            serverTime: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Ошибка в диагностическом эндпоинте:', error);
+        res.status(500).json({ 
+            status: 'error',
+            error: error.message,
+            serverTime: new Date().toISOString()
+        });
+    }
+});
+
 // API маршруты
 app.use('/api/auth', authRoutes);
 app.use('/api/players', playerRoutes);

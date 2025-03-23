@@ -12,13 +12,37 @@ router.get('/', authenticateToken, async (req, res) => {
         // Получаем id пользователя из токена аутентификации
         const userId = req.user.id;
         console.log(`Получение игроков для пользователя ID: ${userId}`);
+        console.log(`User object: ${JSON.stringify(req.user)}`);
+        
+        // Более подробный запрос для отладки
+        console.log('--- ДИАГНОСТИКА ПОЛУЧЕНИЯ ИГРОКОВ ---');
+        
+        // Проверяем наличие записей в таблице Users
+        const usersCount = await sequelize.query(`SELECT COUNT(*) as count FROM "Users"`, { type: QueryTypes.SELECT });
+        console.log(`Количество пользователей в системе: ${usersCount[0].count}`);
+        
+        // Проверяем наличие записей в таблице Players
+        const playersCount = await sequelize.query(`SELECT COUNT(*) as count FROM "Players"`, { type: QueryTypes.SELECT });
+        console.log(`Общее количество игроков в системе: ${playersCount[0].count}`);
+        
+        // Проверяем количество игроков с текущим userId
+        const userPlayersCount = await sequelize.query(
+            `SELECT COUNT(*) as count FROM "Players" WHERE "userId" = :userId`, 
+            { 
+                replacements: { userId },
+                type: QueryTypes.SELECT 
+            }
+        );
+        console.log(`Количество игроков пользователя ${userId}: ${userPlayersCount[0].count}`);
         
         // Получаем только игроков, принадлежащих данному пользователю
         const players = await Player.findAll({
             where: { userId }
         });
         
-        console.log(`Найдено ${players.length} игроков`);
+        console.log(`Найдено ${players.length} игроков, принадлежащих пользователю ${userId}`);
+        console.log(`ID найденных игроков: ${players.map(p => p.id).join(', ')}`);
+        
         res.json(players);
     } catch (error) {
         console.error('Ошибка при получении игроков:', error);

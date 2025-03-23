@@ -3,6 +3,8 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const Player = require('../models/Player');
 const TeamPlayer = require('../models/TeamPlayer');
+const { QueryTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 
 // Получение всех игроков текущего пользователя
 router.get('/', authenticateToken, async (req, res) => {
@@ -11,10 +13,31 @@ router.get('/', authenticateToken, async (req, res) => {
         const userId = req.user.id;
         console.log(`Получение игроков для пользователя ID: ${userId}`);
         
-        // Получаем только игроков, принадлежащих данному пользователю
-        const players = await Player.findAll({
-            where: { userId }
-        });
+        // Проверяем наличие колонки userId в таблице Players
+        const hasUserIdColumn = await sequelize.query(`
+            SELECT COUNT(*) AS column_exists
+            FROM pragma_table_info('Players')
+            WHERE name = 'userId';
+        `, { type: QueryTypes.SELECT })
+            .then(result => parseInt(result[0].column_exists) > 0)
+            .catch(err => {
+                console.error('Ошибка при проверке колонки userId:', err);
+                return false;
+            });
+
+        console.log(`Колонка userId ${hasUserIdColumn ? 'существует' : 'не существует'} в таблице Players`);
+        
+        // Получаем игроков с учетом наличия колонки userId
+        let players;
+        if (hasUserIdColumn) {
+            // Получаем только игроков, принадлежащих данному пользователю
+            players = await Player.findAll({
+                where: { userId }
+            });
+        } else {
+            // Если колонки userId нет, получаем всех игроков
+            players = await Player.findAll();
+        }
         
         console.log(`Найдено ${players.length} игроков`);
         res.json(players);
@@ -48,11 +71,29 @@ router.post('/', authenticateToken, async (req, res) => {
             
         console.log('Очищенное имя игрока:', sanitizedName);
         
-        // Создаем объект с данными игрока с добавлением userId
+        // Проверяем наличие колонки userId в таблице Players
+        const hasUserIdColumn = await sequelize.query(`
+            SELECT COUNT(*) AS column_exists
+            FROM pragma_table_info('Players')
+            WHERE name = 'userId';
+        `, { type: QueryTypes.SELECT })
+            .then(result => parseInt(result[0].column_exists) > 0)
+            .catch(err => {
+                console.error('Ошибка при проверке колонки userId:', err);
+                return false;
+            });
+
+        console.log(`Колонка userId ${hasUserIdColumn ? 'существует' : 'не существует'} в таблице Players`);
+        
+        // Создаем объект с данными игрока
         const playerData = {
-            name: sanitizedName,
-            userId: userId // Привязываем игрока к текущему пользователю
+            name: sanitizedName
         };
+        
+        // Добавляем userId только если колонка существует
+        if (hasUserIdColumn) {
+            playerData.userId = userId;
+        }
         
         console.log('Подготовленные данные для создания игрока:', JSON.stringify(playerData));
         
@@ -111,16 +152,37 @@ router.delete('/:id', authenticateToken, async (req, res) => {
         
         console.log(`Получен запрос на удаление игрока с ID: ${id} от пользователя ID: ${userId}`);
         
-        // Ищем игрока с проверкой, что он принадлежит текущему пользователю
-        const player = await Player.findOne({
-            where: {
-                id: id,
-                userId: userId
-            }
-        });
+        // Проверяем наличие колонки userId в таблице Players
+        const hasUserIdColumn = await sequelize.query(`
+            SELECT COUNT(*) AS column_exists
+            FROM pragma_table_info('Players')
+            WHERE name = 'userId';
+        `, { type: QueryTypes.SELECT })
+            .then(result => parseInt(result[0].column_exists) > 0)
+            .catch(err => {
+                console.error('Ошибка при проверке колонки userId:', err);
+                return false;
+            });
+
+        console.log(`Колонка userId ${hasUserIdColumn ? 'существует' : 'не существует'} в таблице Players`);
+        
+        // Ищем игрока
+        let player;
+        if (hasUserIdColumn) {
+            // Ищем игрока с проверкой, что он принадлежит текущему пользователю
+            player = await Player.findOne({
+                where: {
+                    id: id,
+                    userId: userId
+                }
+            });
+        } else {
+            // Если колонки userId нет, просто ищем игрока по id
+            player = await Player.findByPk(id);
+        }
         
         if (!player) {
-            console.log(`Игрок с ID ${id} не найден или не принадлежит пользователю ${userId}`);
+            console.log(`Игрок с ID ${id} не найден${hasUserIdColumn ? ` или не принадлежит пользователю ${userId}` : ''}`);
             return res.status(404).json({ error: 'Игрок не найден' });
         }
 

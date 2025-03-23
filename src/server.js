@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const { sequelize } = require('./config/database');
 const telegramBot = require('./services/telegramBot');
+const { QueryTypes } = require('sequelize');
 
 // Импортируем функцию миграции
 const { migratePlayersToUser } = require('./scripts/add-user-id-to-players');
@@ -52,6 +53,49 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/players', playerRoutes);
 app.use('/api/teams', teamRoutes);
+
+// Временный эндпоинт для проверки структуры таблицы Players
+app.get('/debug/table-structure', async (req, res) => {
+    try {
+        // Получаем диалект базы данных
+        const dialectInfo = sequelize.getDialect();
+        console.log(`Диалект базы данных: ${dialectInfo}`);
+        
+        let tableStructureQuery;
+        if (dialectInfo === 'sqlite') {
+            tableStructureQuery = `PRAGMA table_info(Players);`;
+        } else if (dialectInfo === 'postgres') {
+            tableStructureQuery = `
+                SELECT column_name, data_type, is_nullable
+                FROM information_schema.columns
+                WHERE table_name = 'Players'
+                ORDER BY ordinal_position;
+            `;
+        } else {
+            return res.status(400).json({ error: `Неподдерживаемый диалект: ${dialectInfo}` });
+        }
+        
+        const tableInfo = await sequelize.query(tableStructureQuery, { type: QueryTypes.SELECT });
+        
+        // Проверяем количество записей в таблице Players
+        const countQuery = `SELECT COUNT(*) as count FROM "Players"`;
+        const countResult = await sequelize.query(countQuery, { type: QueryTypes.SELECT });
+        
+        // Выборка первых 10 игроков для проверки
+        const playersQuery = `SELECT * FROM "Players" LIMIT 10`;
+        const playersSample = await sequelize.query(playersQuery, { type: QueryTypes.SELECT });
+        
+        res.json({
+            dialect: dialectInfo,
+            tableStructure: tableInfo,
+            recordCount: countResult[0].count,
+            playersSample
+        });
+    } catch (error) {
+        console.error('Ошибка при получении структуры таблицы:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
 
 // Маршрут для страницы входа
 app.get('/login', (req, res) => {

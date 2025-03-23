@@ -6,6 +6,9 @@ const cors = require('cors');
 const { sequelize } = require('./config/database');
 const telegramBot = require('./services/telegramBot');
 
+// Импортируем функцию миграции
+const { migratePlayersToUser } = require('./scripts/add-user-id-to-players');
+
 // Маршруты
 const authRoutes = require('./routes/auth');
 const playerRoutes = require('./routes/players');
@@ -110,6 +113,18 @@ async function startServer() {
                     
                 await sequelize.sync(syncOptions);
                 console.log('База данных синхронизирована');
+                
+                // Запускаем миграцию (только в production)
+                if (process.env.NODE_ENV === 'production') {
+                    try {
+                        console.log('Запуск миграции для добавления userId игрокам...');
+                        await migratePlayersToUser();
+                        console.log('Миграция завершена успешно');
+                    } catch (migrationError) {
+                        console.error('Ошибка при выполнении миграции:', migrationError);
+                        // Продолжаем работу даже при ошибке миграции
+                    }
+                }
             } catch (syncError) {
                 console.error('Ошибка при синхронизации базы данных:', syncError.message);
                 // Продолжаем работу даже при ошибке синхронизации

@@ -127,13 +127,20 @@ async function migratePlayersToUser() {
     }
 }
 
-// Выполняем миграцию при запуске скрипта
-migratePlayersToUser()
-    .then(() => {
-        console.log('Миграция завершена успешно');
-        process.exit(0);
-    })
-    .catch(error => {
-        console.error('Ошибка при выполнении миграции:', error);
-        process.exit(1);
-    }); 
+// Экспортируем функцию для использования в других модулях
+module.exports = {
+    migratePlayersToUser
+};
+
+// Если скрипт запущен напрямую (не через require), выполняем миграцию
+if (require.main === module) {
+    migratePlayersToUser()
+        .then(() => {
+            console.log('Миграция завершена успешно');
+            process.exit(0);
+        })
+        .catch(error => {
+            console.error('Ошибка при выполнении миграции:', error);
+            process.exit(1);
+        });
+} 

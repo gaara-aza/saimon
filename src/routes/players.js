@@ -34,12 +34,12 @@ router.post('/', authenticateToken, async (req, res) => {
             // Добавляем значения по умолчанию для других полей, если они не предоставлены
             number: req.body.number !== undefined ? req.body.number : null,
             position: req.body.position || null,
-            birthDate: req.body.birthDate || null,
-            active: req.body.hasOwnProperty('active') ? req.body.active : true,
-            isSelected: req.body.hasOwnProperty('isSelected') ? req.body.isSelected : false,
-            gamesPlayed: req.body.gamesPlayed !== undefined ? req.body.gamesPlayed : 0,
-            gamesWon: req.body.gamesWon !== undefined ? req.body.gamesWon : 0,
-            points: req.body.points !== undefined ? req.body.points : 0
+            birthDate: null, // Всегда устанавливаем null для birthDate
+            active: true, // Устанавливаем явные значения вместо проверок
+            isSelected: false,
+            gamesPlayed: 0,
+            gamesWon: 0,
+            points: 0
         };
         
         console.log('Подготовленные данные для создания игрока:', JSON.stringify(playerData));

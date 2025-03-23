@@ -12,7 +12,7 @@ function generateVerificationCode() {
 const generateToken = (user) => {
     return jwt.sign(
         { id: user.id, phone: user.phone },
-        process.env.JWT_SECRET,
+        process.env.JWT_SECRET || 'default-secret-key-for-development',
         { expiresIn: '30d' }
     );
 };
@@ -44,8 +44,18 @@ const requestVerificationCode = async (req, res) => {
             await user.save();
         }
 
-        // Пытаемся отправить код через Telegram
-        const sentViaTelegram = await telegramBot.sendVerificationCode(phone, user.verificationCode);
+        // Пытаемся отправить код через Telegram, только если бот инициализирован
+        let sentViaTelegram = false;
+        if (telegramBot && telegramBot.bot) {
+            try {
+                sentViaTelegram = await telegramBot.sendVerificationCode(phone, user.verificationCode);
+            } catch (botError) {
+                console.warn('Ошибка отправки кода через Telegram:', botError.message);
+                // Продолжаем работу, отправим код в ответе
+            }
+        } else {
+            console.warn('Telegram бот не инициализирован, отправка кода невозможна');
+        }
 
         // В режиме разработки или если отправка через Telegram не удалась,
         // возвращаем код в ответе

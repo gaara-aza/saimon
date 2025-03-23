@@ -18,7 +18,7 @@ const app = express();
 app.use(cors({
     origin: process.env.NODE_ENV === 'development' 
         ? '*' 
-        : ['https://footmanager-production.up.railway.app', 'http://localhost:3000'],
+        : ['https://footmanager-production.up.railway.app', 'https://saimon-production.up.railway.app', 'http://localhost:3000'],
     credentials: true
 }));
 app.use(express.json());
@@ -40,7 +40,8 @@ app.get('/health', (req, res) => {
         status: 'ok',
         timestamp: new Date().toISOString(),
         env: process.env.NODE_ENV,
-        port: process.env.PORT
+        port: process.env.PORT,
+        version: '1.0.0'
     });
 });
 
@@ -54,10 +55,17 @@ app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/login.html'));
 });
 
+// Начальная страница
+app.get('/', (req, res) => {
+    // Для демонстрации перенаправляем на страницу входа
+    res.redirect('/login');
+});
+
 // Обработка ошибок
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ message: 'Что-то пошло не так!' });
+    console.error('Error:', err.message);
+    console.error('Stack:', err.stack);
+    res.status(500).json({ message: 'Что-то пошло не так!', error: process.env.NODE_ENV === 'production' ? {} : err.message });
 });
 
 // Запуск сервера
@@ -65,26 +73,43 @@ const PORT = process.env.PORT || 3000;
 
 async function startServer() {
     try {
-        // Проверяем наличие необходимых переменных окружения
-        if (!process.env.TELEGRAM_BOT_TOKEN) {
-            throw new Error('TELEGRAM_BOT_TOKEN не установлен в переменных окружения');
-        }
+        console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+        console.log(`PORT: ${PORT}`);
+        console.log(`TELEGRAM_BOT_TOKEN exists: ${!!process.env.TELEGRAM_BOT_TOKEN}`);
+        console.log(`JWT_SECRET exists: ${!!process.env.JWT_SECRET}`);
+        console.log(`DATABASE_URL exists: ${!!process.env.DATABASE_URL}`);
 
         // Синхронизация базы данных
+        await sequelize.authenticate();
+        console.log('База данных подключена успешно');
+        
         await sequelize.sync();
         console.log('База данных синхронизирована');
 
-        // Запуск Telegram бота
-        telegramBot.launch();
-        console.log('Telegram бот запущен');
+        // Запуск Telegram бота (только если установлен токен)
+        if (process.env.TELEGRAM_BOT_TOKEN) {
+            try {
+                telegramBot.launch();
+                console.log('Telegram бот запущен');
+            } catch (botError) {
+                console.warn('Ошибка запуска бота:', botError.message);
+            }
+        } else {
+            console.warn('TELEGRAM_BOT_TOKEN не установлен. Бот не будет запущен.');
+            // Это нормально, продолжаем работу без бота
+        }
 
         // Запуск сервера
         app.listen(PORT, () => {
             console.log(`Сервер запущен на порту ${PORT}`);
         });
     } catch (error) {
-        console.error('Ошибка при запуске сервера:', error);
-        process.exit(1);
+        console.error('Ошибка при запуске сервера:', error.message);
+        console.error(error.stack);
+        // Don't exit in production, let the process restart
+        if (process.env.NODE_ENV !== 'production') {
+            process.exit(1);
+        }
     }
 }
 

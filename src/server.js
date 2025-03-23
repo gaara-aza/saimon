@@ -57,8 +57,16 @@ app.get('/login', (req, res) => {
 
 // Начальная страница
 app.get('/', (req, res) => {
-    // Для демонстрации перенаправляем на страницу входа
-    res.redirect('/login');
+    // Проверяем наличие токена в cookies
+    const token = req.cookies.token;
+    
+    if (!token) {
+        // Если токена нет, перенаправляем на страницу входа
+        return res.redirect('/login');
+    }
+    
+    // Если токен есть, отправляем главную страницу
+    res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
 // Обработка ошибок

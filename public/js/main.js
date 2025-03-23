@@ -22,23 +22,41 @@ const API_BASE_URL = window.location.hostname === 'localhost'
 console.log('Using API URL:', API_BASE_URL);
 
 // Загрузка игроков при загрузке страницы
-document.addEventListener('DOMContentLoaded', async () => {
-    await loadPlayers();
-});
+// Убираем дублирующийся слушатель
+// document.addEventListener('DOMContentLoaded', async () => {
+//     await loadPlayers();
+// });
 
 // Функция загрузки списка игроков
 async function loadPlayers() {
     try {
         console.log('Загрузка игроков с:', `${API_BASE_URL}/api/players`);
-        const response = await fetch(`${API_BASE_URL}/api/players`);
+        const response = await fetch(`${API_BASE_URL}/api/players`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include' // Важно для отправки cookies с JWT токеном
+        });
+        
+        if (response.status === 401) {
+            // Если не авторизован, перенаправляем на страницу входа
+            window.location.href = '/login';
+            return;
+        }
+        
         if (!response.ok) {
             throw new Error('Ошибка при загрузке игроков');
         }
+        
         const data = await response.json();
         players = data;
         renderAllPlayers();
     } catch (error) {
         console.error('Ошибка при загрузке игроков:', error);
+        if (error.message.includes('401')) {
+            window.location.href = '/login';
+        }
     }
 }
 
@@ -61,8 +79,15 @@ document.getElementById('addPlayerForm').addEventListener('submit', async (e) =>
             headers: {
                 'Content-Type': 'application/json'
             },
+            credentials: 'include', // Важно для отправки cookies с JWT токеном
             body: JSON.stringify({ name })
         });
+
+        if (response.status === 401) {
+            // Если не авторизован, перенаправляем на страницу входа
+            window.location.href = '/login';
+            return;
+        }
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -80,6 +105,10 @@ document.getElementById('addPlayerForm').addEventListener('submit', async (e) =>
     } catch (error) {
         console.error('Ошибка:', error);
         alert('Ошибка при добавлении игрока');
+        
+        if (error.message.includes('401')) {
+            window.location.href = '/login';
+        }
     }
 });
 
@@ -88,8 +117,15 @@ async function handleDeletePlayer(playerId) {
     try {
         console.log('Удаление игрока:', `${API_BASE_URL}/api/players/${playerId}`);
         const response = await fetch(`${API_BASE_URL}/api/players/${playerId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            credentials: 'include' // Важно для отправки cookies с JWT токеном
         });
+
+        if (response.status === 401) {
+            // Если не авторизован, перенаправляем на страницу входа
+            window.location.href = '/login';
+            return;
+        }
 
         if (response.ok) {
             console.log('Игрок успешно удален');
@@ -116,6 +152,10 @@ async function handleDeletePlayer(playerId) {
     } catch (error) {
         console.error('Исключение при удалении игрока:', error);
         alert('Ошибка при удалении игрока');
+        
+        if (error.message.includes('401')) {
+            window.location.href = '/login';
+        }
     }
 }
 
@@ -317,4 +357,38 @@ function удалитьИзКоманды(playerId, teamName) {
 }
 
 // Инициализация при загрузке страницы
-document.addEventListener('DOMContentLoaded', loadPlayers); 
+// Убираем дублирующийся слушатель
+// document.addEventListener('DOMContentLoaded', loadPlayers);
+
+// Добавим кнопку выхода в главное меню
+document.addEventListener('DOMContentLoaded', async () => {
+    // Добавляем кнопку выхода
+    const container = document.querySelector('.container');
+    const logoutButton = document.createElement('button');
+    logoutButton.textContent = 'Выйти';
+    logoutButton.className = 'logout-button';
+    logoutButton.style.marginLeft = 'auto';
+    logoutButton.style.display = 'block';
+    logoutButton.style.marginBottom = '20px';
+    
+    logoutButton.addEventListener('click', async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+            
+            if (response.ok) {
+                // Перенаправляем на страницу входа
+                window.location.href = '/login';
+            }
+        } catch (error) {
+            console.error('Ошибка при выходе:', error);
+        }
+    });
+    
+    container.prepend(logoutButton);
+    
+    // Загружаем игроков
+    await loadPlayers();
+}); 

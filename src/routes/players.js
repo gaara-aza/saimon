@@ -19,8 +19,6 @@ router.post('/', authenticateToken, async (req, res) => {
     try {
         console.log('---------- СОЗДАНИЕ НОВОГО ИГРОКА ----------');
         console.log('Получены данные для создания игрока:', JSON.stringify(req.body));
-        console.log('Заголовки запроса:', req.headers);
-        console.log('Пользователь из токена:', req.user);
         
         // Проверяем, что есть имя игрока
         if (!req.body.name || req.body.name.trim() === '') {
@@ -28,18 +26,19 @@ router.post('/', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'Имя игрока обязательно' });
         }
         
-        // Создаем объект с данными игрока
+        // Очищаем имя игрока от лишних пробелов и экранируем специальные символы
+        const sanitizedName = req.body.name.trim()
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+            
+        console.log('Очищенное имя игрока:', sanitizedName);
+        
+        // Создаем объект с данными игрока с минимальным набором полей
         const playerData = {
-            name: req.body.name.trim(),
-            // Добавляем значения по умолчанию для других полей, если они не предоставлены
-            number: req.body.number !== undefined ? req.body.number : null,
-            position: req.body.position || null,
-            birthDate: null, // Всегда устанавливаем null для birthDate
-            active: true, // Устанавливаем явные значения вместо проверок
-            isSelected: false,
-            gamesPlayed: 0,
-            gamesWon: 0,
-            points: 0
+            name: sanitizedName,
+            active: true,
+            isSelected: false
         };
         
         console.log('Подготовленные данные для создания игрока:', JSON.stringify(playerData));
@@ -51,18 +50,43 @@ router.post('/', authenticateToken, async (req, res) => {
         } catch (dbError) {
             console.error('Ошибка создания в базе данных:', dbError);
             console.error('Сообщение ошибки:', dbError.message);
+            
+            if (dbError.name === 'SequelizeConnectionError') {
+                console.error('Ошибка соединения с базой данных');
+                return res.status(500).json({ 
+                    error: 'Проблема с соединением с базой данных',
+                    details: dbError.message
+                });
+            }
+            
             if (dbError.name === 'SequelizeValidationError') {
                 console.error('Детали ошибки валидации:', dbError.errors.map(e => e.message).join(', '));
+                return res.status(400).json({ 
+                    error: 'Ошибка валидации данных',
+                    details: dbError.errors.map(e => e.message) 
+                });
             }
+            
             if (dbError.name === 'SequelizeUniqueConstraintError') {
                 console.error('Ошибка уникальности:', dbError.errors.map(e => e.message).join(', '));
+                return res.status(409).json({ 
+                    error: 'Игрок с таким именем уже существует',
+                    details: dbError.errors.map(e => e.message)
+                });
             }
-            res.status(400).json({ error: dbError.message, details: dbError.errors });
+            
+            res.status(400).json({ 
+                error: 'Ошибка при создании игрока в базе данных',
+                message: dbError.message
+            });
         }
     } catch (error) {
         console.error('Общая ошибка при создании игрока:', error);
         console.error('Стек ошибки:', error.stack);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ 
+            error: 'Внутренняя ошибка сервера',
+            message: error.message
+        });
     }
 });
 

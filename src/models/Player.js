@@ -8,20 +8,32 @@ const Player = sequelize.define('Player', {
         autoIncrement: true
     },
     name: {
-        type: DataTypes.STRING,
-        allowNull: false
+        type: DataTypes.STRING(191),
+        allowNull: false,
+        validate: {
+            notEmpty: {
+                msg: 'Имя игрока не может быть пустым'
+            },
+            len: {
+                args: [1, 191],
+                msg: 'Имя игрока должно содержать от 1 до 191 символа'
+            }
+        }
     },
     number: {
         type: DataTypes.INTEGER,
-        allowNull: true
+        allowNull: true,
+        defaultValue: null
     },
     position: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
+        defaultValue: null
     },
     birthDate: {
         type: DataTypes.DATE,
-        allowNull: true
+        allowNull: true,
+        defaultValue: null
     },
     active: {
         type: DataTypes.BOOLEAN,
@@ -45,7 +57,9 @@ const Player = sequelize.define('Player', {
         defaultValue: 0
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    charset: 'utf8mb4',
+    collate: 'utf8mb4_unicode_ci'
 });
 
 module.exports = Player; 

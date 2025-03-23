@@ -87,12 +87,29 @@ async function startServer() {
         console.log(`JWT_SECRET exists: ${!!process.env.JWT_SECRET}`);
         console.log(`DATABASE_URL exists: ${!!process.env.DATABASE_URL}`);
 
-        // Синхронизация базы данных
-        await sequelize.authenticate();
-        console.log('База данных подключена успешно');
+        // Тестируем соединение с базой данных
+        const { testConnection } = require('./config/database');
+        const dbConnected = await testConnection();
         
-        await sequelize.sync();
-        console.log('База данных синхронизирована');
+        if (!dbConnected) {
+            console.warn('Невозможно установить соединение с базой данных. Работа приложения может быть нестабильной.');
+            
+            if (process.env.NODE_ENV !== 'production') {
+                console.error('В режиме разработки завершаем процесс из-за отсутствия соединения с базой данных.');
+                process.exit(1);
+            }
+        }
+        
+        // Синхронизация базы данных только если соединение установлено
+        if (dbConnected) {
+            try {
+                await sequelize.sync();
+                console.log('База данных синхронизирована');
+            } catch (syncError) {
+                console.error('Ошибка при синхронизации базы данных:', syncError.message);
+                // Продолжаем работу даже при ошибке синхронизации
+            }
+        }
 
         // Запуск Telegram бота (только если установлен токен)
         if (process.env.TELEGRAM_BOT_TOKEN) {

@@ -17,10 +17,14 @@ router.get('/', authenticateToken, async (req, res) => {
 // Создание нового игрока
 router.post('/', authenticateToken, async (req, res) => {
     try {
-        console.log('Получены данные для создания игрока:', req.body);
+        console.log('---------- СОЗДАНИЕ НОВОГО ИГРОКА ----------');
+        console.log('Получены данные для создания игрока:', JSON.stringify(req.body));
+        console.log('Заголовки запроса:', req.headers);
+        console.log('Пользователь из токена:', req.user);
         
         // Проверяем, что есть имя игрока
         if (!req.body.name || req.body.name.trim() === '') {
+            console.log('Ошибка: имя игрока отсутствует или пустое');
             return res.status(400).json({ error: 'Имя игрока обязательно' });
         }
         
@@ -28,24 +32,37 @@ router.post('/', authenticateToken, async (req, res) => {
         const playerData = {
             name: req.body.name.trim(),
             // Добавляем значения по умолчанию для других полей, если они не предоставлены
-            number: req.body.number || null,
+            number: req.body.number !== undefined ? req.body.number : null,
             position: req.body.position || null,
             birthDate: req.body.birthDate || null,
             active: req.body.hasOwnProperty('active') ? req.body.active : true,
             isSelected: req.body.hasOwnProperty('isSelected') ? req.body.isSelected : false,
-            gamesPlayed: req.body.gamesPlayed || 0,
-            gamesWon: req.body.gamesWon || 0,
-            points: req.body.points || 0
+            gamesPlayed: req.body.gamesPlayed !== undefined ? req.body.gamesPlayed : 0,
+            gamesWon: req.body.gamesWon !== undefined ? req.body.gamesWon : 0,
+            points: req.body.points !== undefined ? req.body.points : 0
         };
         
-        console.log('Подготовленные данные для создания игрока:', playerData);
+        console.log('Подготовленные данные для создания игрока:', JSON.stringify(playerData));
         
-        const player = await Player.create(playerData);
-        console.log('Игрок успешно создан:', player.id);
-        res.json(player);
+        try {
+            const player = await Player.create(playerData);
+            console.log('Игрок успешно создан, ID:', player.id);
+            res.json(player);
+        } catch (dbError) {
+            console.error('Ошибка создания в базе данных:', dbError);
+            console.error('Сообщение ошибки:', dbError.message);
+            if (dbError.name === 'SequelizeValidationError') {
+                console.error('Детали ошибки валидации:', dbError.errors.map(e => e.message).join(', '));
+            }
+            if (dbError.name === 'SequelizeUniqueConstraintError') {
+                console.error('Ошибка уникальности:', dbError.errors.map(e => e.message).join(', '));
+            }
+            res.status(400).json({ error: dbError.message, details: dbError.errors });
+        }
     } catch (error) {
-        console.error('Ошибка при создании игрока:', error);
-        res.status(400).json({ error: error.message });
+        console.error('Общая ошибка при создании игрока:', error);
+        console.error('Стек ошибки:', error.stack);
+        res.status(500).json({ error: error.message });
     }
 });
 

@@ -73,6 +73,7 @@ document.getElementById('addPlayerForm').addEventListener('submit', async (e) =>
 
     try {
         console.log('Отправка запроса на:', `${API_BASE_URL}/api/players`);
+        console.log('Данные запроса:', JSON.stringify({ name }));
         
         const response = await fetch(`${API_BASE_URL}/api/players`, {
             method: 'POST',
@@ -85,16 +86,31 @@ document.getElementById('addPlayerForm').addEventListener('submit', async (e) =>
 
         if (response.status === 401) {
             // Если не авторизован, перенаправляем на страницу входа
+            console.log('Ошибка авторизации (401). Перенаправление на страницу входа.');
             window.location.href = '/login';
             return;
         }
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        const responseText = await response.text();
+        console.log('Ответ сервера (текст):', responseText);
+        
+        let data;
+        try {
+            data = JSON.parse(responseText);
+            console.log('Ответ сервера (JSON):', data);
+        } catch (parseError) {
+            console.error('Ошибка парсинга JSON:', parseError);
+            alert(`Ошибка парсинга ответа: ${responseText}`);
+            return;
         }
 
-        const player = await response.json();
-        console.log('Игрок добавлен:', player);
+        if (!response.ok) {
+            console.error('HTTP ошибка:', response.status, data);
+            alert(`Ошибка: ${data.error || response.statusText}`);
+            return;
+        }
+
+        console.log('Игрок добавлен:', data);
         
         // Очищаем поле ввода
         nameInput.value = '';
@@ -103,8 +119,9 @@ document.getElementById('addPlayerForm').addEventListener('submit', async (e) =>
         await loadPlayers();
         
     } catch (error) {
-        console.error('Ошибка:', error);
-        alert('Ошибка при добавлении игрока');
+        console.error('Исключение при добавлении игрока:', error);
+        console.error('Стек ошибки:', error.stack);
+        alert(`Ошибка при добавлении игрока: ${error.message}`);
         
         if (error.message.includes('401')) {
             window.location.href = '/login';

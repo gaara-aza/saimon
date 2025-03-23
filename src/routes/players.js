@@ -36,9 +36,7 @@ router.post('/', authenticateToken, async (req, res) => {
         
         // Создаем объект с данными игрока с минимальным набором полей
         const playerData = {
-            name: sanitizedName,
-            active: true,
-            isSelected: false
+            name: sanitizedName
         };
         
         console.log('Подготовленные данные для создания игрока:', JSON.stringify(playerData));

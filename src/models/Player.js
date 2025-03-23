@@ -19,42 +19,6 @@ const Player = sequelize.define('Player', {
                 msg: 'Имя игрока должно содержать от 1 до 191 символа'
             }
         }
-    },
-    number: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        defaultValue: null
-    },
-    position: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        defaultValue: null
-    },
-    birthDate: {
-        type: DataTypes.DATE,
-        allowNull: true,
-        defaultValue: null
-    },
-    active: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: true
-    },
-    isSelected: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
-    },
-    // Statistics fields
-    gamesPlayed: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0
-    },
-    gamesWon: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0
-    },
-    points: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0
     }
 }, {
     timestamps: true,

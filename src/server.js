@@ -103,7 +103,12 @@ async function startServer() {
         // Синхронизация базы данных только если соединение установлено
         if (dbConnected) {
             try {
-                await sequelize.sync();
+                // В режиме разработки пересоздаем таблицы для соответствия моделям
+                const syncOptions = process.env.NODE_ENV === 'development' 
+                    ? { force: true } // Пересоздаем таблицы (удаляет данные!)
+                    : {};
+                    
+                await sequelize.sync(syncOptions);
                 console.log('База данных синхронизирована');
             } catch (syncError) {
                 console.error('Ошибка при синхронизации базы данных:', syncError.message);

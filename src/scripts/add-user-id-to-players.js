@@ -52,28 +52,52 @@ async function migratePlayersToUser() {
             
             console.log('Колонка userId добавлена');
 
-            // Получаем первого пользователя или создаем его
-            let user = await User.findOne({ transaction });
-            if (!user) {
-                user = await User.create({
+            // Получаем всех пользователей
+            const users = await User.findAll({ transaction });
+            console.log(`Найдено ${users.length} пользователей`);
+
+            if (users.length === 0) {
+                // Создаем пользователя по умолчанию если нет пользователей
+                const defaultUser = await User.create({
                     phone: '+71234567890',
                     name: 'Администратор',
                     verificationCode: '1234',
                     isVerified: true
                 }, { transaction });
-                console.log('Создан пользователь по умолчанию с ID:', user.id);
+                
+                console.log('Создан пользователь по умолчанию с ID:', defaultUser.id);
+                
+                // Назначаем всех игроков этому пользователю
+                await sequelize.query(`
+                    UPDATE "Players"
+                    SET "userId" = ${defaultUser.id}
+                    WHERE "userId" IS NULL;
+                `, { transaction });
             } else {
-                console.log('Найден существующий пользователь с ID:', user.id);
+                // Равномерно распределяем игроков между существующими пользователями
+                const allPlayers = await sequelize.query(
+                    `SELECT id FROM "Players" ORDER BY id`,
+                    { type: QueryTypes.SELECT, transaction }
+                );
+                console.log(`Найдено ${allPlayers.length} игроков для распределения`);
+                
+                if (allPlayers.length > 0) {
+                    for (let i = 0; i < allPlayers.length; i++) {
+                        // Выбираем пользователя по порядковому номеру игрока (с циклическим повторением)
+                        const userIndex = i % users.length;
+                        const userId = users[userIndex].id;
+                        
+                        await sequelize.query(`
+                            UPDATE "Players"
+                            SET "userId" = ${userId}
+                            WHERE id = ${allPlayers[i].id};
+                        `, { transaction });
+                    }
+                    console.log('Игроки распределены между существующими пользователями');
+                } else {
+                    console.log('Игроков для распределения не найдено');
+                }
             }
-
-            // Назначаем всех существующих игроков этому пользователю
-            await sequelize.query(`
-                UPDATE "Players"
-                SET "userId" = ${user.id}
-                WHERE "userId" IS NULL;
-            `, { transaction });
-            
-            console.log('Всем игрокам назначен пользователь с ID:', user.id);
 
             // Устанавливаем NOT NULL ограничение для колонки userId
             // Разные запросы для разных баз данных

@@ -232,9 +232,6 @@
                 // Запускаем таймер
                 startTimer(60);
 
-                // В режиме разработки показываем код
-                console.log('Код подтверждения:', data.code);
-
             } catch (error) {
                 errorElement.textContent = error.message;
                 errorElement.style.display = 'block';

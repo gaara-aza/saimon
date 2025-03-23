@@ -4,12 +4,22 @@ const { authenticateToken } = require('../middleware/auth');
 const Player = require('../models/Player');
 const TeamPlayer = require('../models/TeamPlayer');
 
-// Получение всех игроков
+// Получение всех игроков текущего пользователя
 router.get('/', authenticateToken, async (req, res) => {
     try {
-        const players = await Player.findAll();
+        // Получаем id пользователя из токена аутентификации
+        const userId = req.user.id;
+        console.log(`Получение игроков для пользователя ID: ${userId}`);
+        
+        // Получаем только игроков, принадлежащих данному пользователю
+        const players = await Player.findAll({
+            where: { userId }
+        });
+        
+        console.log(`Найдено ${players.length} игроков`);
         res.json(players);
     } catch (error) {
+        console.error('Ошибка при получении игроков:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -19,6 +29,10 @@ router.post('/', authenticateToken, async (req, res) => {
     try {
         console.log('---------- СОЗДАНИЕ НОВОГО ИГРОКА ----------');
         console.log('Получены данные для создания игрока:', JSON.stringify(req.body));
+        
+        // Получаем id пользователя из токена аутентификации
+        const userId = req.user.id;
+        console.log(`Создание игрока для пользователя ID: ${userId}`);
         
         // Проверяем, что есть имя игрока
         if (!req.body.name || req.body.name.trim() === '') {
@@ -34,9 +48,10 @@ router.post('/', authenticateToken, async (req, res) => {
             
         console.log('Очищенное имя игрока:', sanitizedName);
         
-        // Создаем объект с данными игрока с минимальным набором полей
+        // Создаем объект с данными игрока с добавлением userId
         const playerData = {
-            name: sanitizedName
+            name: sanitizedName,
+            userId: userId // Привязываем игрока к текущему пользователю
         };
         
         console.log('Подготовленные данные для создания игрока:', JSON.stringify(playerData));
@@ -92,12 +107,20 @@ router.post('/', authenticateToken, async (req, res) => {
 router.delete('/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-        console.log(`Получен запрос на удаление игрока с ID: ${id}`);
+        const userId = req.user.id;
         
-        const player = await Player.findByPk(id);
+        console.log(`Получен запрос на удаление игрока с ID: ${id} от пользователя ID: ${userId}`);
+        
+        // Ищем игрока с проверкой, что он принадлежит текущему пользователю
+        const player = await Player.findOne({
+            where: {
+                id: id,
+                userId: userId
+            }
+        });
         
         if (!player) {
-            console.log(`Игрок с ID ${id} не найден`);
+            console.log(`Игрок с ID ${id} не найден или не принадлежит пользователю ${userId}`);
             return res.status(404).json({ error: 'Игрок не найден' });
         }
 

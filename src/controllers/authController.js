@@ -51,25 +51,20 @@ const requestVerificationCode = async (req, res) => {
                 sentViaTelegram = await telegramBot.sendVerificationCode(phone, user.verificationCode);
             } catch (botError) {
                 console.warn('Ошибка отправки кода через Telegram:', botError.message);
-                // Продолжаем работу, отправим код в ответе
             }
         } else {
             console.warn('Telegram бот не инициализирован, отправка кода невозможна');
         }
 
-        // В режиме разработки или если отправка через Telegram не удалась,
-        // возвращаем код в ответе
-        if (process.env.NODE_ENV !== 'production' || !sentViaTelegram) {
+        // Только записываем код в консоль для отладки
+        if (!sentViaTelegram) {
             console.log(`Код подтверждения для ${phone}: ${user.verificationCode}`);
-            res.json({ 
-                message: 'Код подтверждения отправлен',
-                code: user.verificationCode 
-            });
-        } else {
-            res.json({ 
-                message: 'Код подтверждения отправлен в Telegram'
-            });
         }
+
+        // Всегда отправляем один и тот же ответ без кода
+        res.json({ 
+            message: 'Код подтверждения отправлен в Telegram'
+        });
     } catch (error) {
         console.error('Ошибка при отправке кода:', error);
         res.status(500).json({ message: 'Ошибка сервера' });

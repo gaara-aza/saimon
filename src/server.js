@@ -9,6 +9,7 @@ const { QueryTypes } = require('sequelize');
 
 // Импортируем функцию миграции
 const { migratePlayersToUser } = require('./scripts/add-user-id-to-players');
+const { fixPlayerAssignment } = require('./scripts/fix-player-assignment');
 
 // Маршруты
 const authRoutes = require('./routes/auth');
@@ -100,6 +101,73 @@ app.get('/api/public/diagnostic', async (req, res) => {
         });
     } catch (error) {
         console.error('Ошибка в диагностическом эндпоинте:', error);
+        res.status(500).json({ 
+            status: 'error',
+            error: error.message,
+            serverTime: new Date().toISOString()
+        });
+    }
+});
+
+// Диагностический эндпоинт для проверки распределения игроков
+app.get('/api/public/player-distribution', async (req, res) => {
+    try {
+        // Проверяем распределение игроков по пользователям
+        const distribution = await sequelize.query(`
+            SELECT "userId", COUNT(*) as count 
+            FROM "Players" 
+            GROUP BY "userId"
+            ORDER BY count DESC
+        `, { type: QueryTypes.SELECT });
+        
+        // Получаем информацию о пользователях
+        const users = await sequelize.query(`
+            SELECT id, phone, name, "isVerified"
+            FROM "Users"
+            ORDER BY id
+        `, { type: QueryTypes.SELECT });
+        
+        // Получаем некоторые примеры игроков для каждого пользователя
+        const playerExamples = [];
+        for (const user of users) {
+            const players = await sequelize.query(`
+                SELECT id, name, "userId"
+                FROM "Players"
+                WHERE "userId" = :userId
+                LIMIT 5
+            `, { 
+                replacements: { userId: user.id },
+                type: QueryTypes.SELECT 
+            });
+            
+            playerExamples.push({
+                userId: user.id,
+                playerCount: players.length,
+                players: players
+            });
+        }
+        
+        // Получаем общее количество игроков
+        const totalPlayers = await sequelize.query(`
+            SELECT COUNT(*) as total FROM "Players"
+        `, { type: QueryTypes.SELECT });
+        
+        // Получаем количество игроков без userId
+        const nullUserIdPlayers = await sequelize.query(`
+            SELECT COUNT(*) as count FROM "Players" WHERE "userId" IS NULL
+        `, { type: QueryTypes.SELECT });
+        
+        res.json({
+            status: 'ok',
+            totalPlayers: totalPlayers[0].total,
+            nullUserIdPlayers: nullUserIdPlayers[0].count,
+            distribution: distribution,
+            users: users,
+            playerExamples: playerExamples,
+            serverTime: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Ошибка при получении распределения игроков:', error);
         res.status(500).json({ 
             status: 'error',
             error: error.message,
@@ -223,6 +291,10 @@ async function startServer() {
                         console.log('Запуск миграции для добавления userId игрокам...');
                         await migratePlayersToUser();
                         console.log('Миграция завершена успешно');
+                        
+                        console.log('Запуск скрипта распределения игроков...');
+                        await fixPlayerAssignment();
+                        console.log('Распределение игроков завершено');
                     } catch (migrationError) {
                         console.error('Ошибка при выполнении миграции:', migrationError);
                         // Продолжаем работу даже при ошибке миграции
